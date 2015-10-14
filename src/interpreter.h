@@ -208,3 +208,17 @@ struct alias_data {
 #define SCMD_UNLOCK     2
 #define SCMD_LOCK       3
 #define SCMD_PICK       4
+
+/* do_olc */
+#define SCMD_OASIS_REDIT	0
+#define SCMD_OASIS_OEDIT	1
+#define SCMD_OASIS_ZEDIT	2
+#define SCMD_OASIS_MEDIT	3
+#define SCMD_OASIS_SEDIT	4
+#define SCMD_OASIS_CEDIT	5
+#define SCMD_OLC_SAVEINFO	7
+#define SCMD_OASIS_RLIST 	8
+#define SCMD_OASIS_MLIST	9
+#define SCMD_OASIS_OLIST	10
+#define SCMD_OASIS_SLIST	11
+#define SCMD_OASIS_ZLIST        12

@@ -416,9 +416,6 @@ int Board_remove_msg(int board_type, struct char_data *ch, char *arg, struct obj
     MSG_SLOTNUM(board_type, ind) = MSG_SLOTNUM(board_type, ind + 1);
     MSG_LEVEL(board_type, ind) = MSG_LEVEL(board_type, ind + 1);
   }
-  MSG_HEADING(board_type, num_of_msgs[board_type] - 1) = NULL;
-  MSG_SLOTNUM(board_type, num_of_msgs[board_type] - 1) = 0;
-  MSG_LEVEL(board_type, num_of_msgs[board_type] - 1) = 0;
   num_of_msgs[board_type]--;
 
   send_to_char(ch, "Message removed.\r\n");

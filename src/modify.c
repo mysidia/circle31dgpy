@@ -21,11 +21,13 @@
 #include "spells.h"
 #include "mail.h"
 #include "boards.h"
+#include "improved-edit.h"
+#include "oasis.h"
+#include "tedit.h"
 
 void show_string(struct descriptor_data *d, char *input);
 
 extern struct spell_info_type spell_info[];
-extern const char *MENU;
 extern const char *unused_spellname;	/* spell_parser.c */
 
 /* local functions */
@@ -34,6 +36,8 @@ ACMD(do_skillset);
 char *next_page(char *str);
 int count_pages(char *str);
 void paginate_string(char *str, struct descriptor_data *d);
+void playing_string_cleanup(struct descriptor_data *d, int action);
+void exdesc_string_cleanup(struct descriptor_data *d, int action);
 
 const char *string_fields[] =
 {
@@ -95,36 +99,48 @@ void string_write(struct descriptor_data *d, char **writeto, size_t len, long ma
   if (d->character && !IS_NPC(d->character))
     SET_BIT(PLR_FLAGS(d->character), PLR_WRITING);
 
-  if (data)
-    mudlog(BRF, LVL_IMMORT, TRUE, "SYSERR: string_write: I don't understand special data.");
+  if (using_improved_editor)
+    d->backstr = (char *)data;
+  else if (data)
+    free(data); 
 
   d->str = writeto;
   d->max_str = len;
   d->mail_to = mailto;
 }
 
-/* Add user input to the 'current' string (as defined by d->str) */
+/*
+ * Add user input to the 'current' string (as defined by d->str).
+ * This is still overly complex.
+ */
 void string_add(struct descriptor_data *d, char *str)
 {
-  int terminator;
+  int action;
 
   /* determine if this is the terminal string, and truncate if so */
   /* changed to only accept '@' at the beginning of line - J. Elson 1/17/94 */
 
   delete_doubledollar(str);
-
-  if ((terminator = (*str == '@')))
-    *str = '\0';
-
   smash_tilde(str);
 
-  if (!(*d->str)) {
+  /* determine if this is the terminal string, and truncate if so */
+  /* changed to only accept '@' at the beginning of line - J. Elson 1/17/94 */
+  if ((action = (*str == '@')))
+    *str = '\0';
+  else
+    if ((action = improved_editor_execute(d, str)) == STRINGADD_ACTION)
+      return;
+
+  if (action != STRINGADD_OK)
+    /* Do nothing. */ ;
+  else if (!(*d->str)) {
     if (strlen(str) + 3 > d->max_str) { /* \r\n\0 */
       send_to_char(d->character, "String too long - Truncated.\r\n");
       strcpy(&str[d->max_str - 3], "\r\n");	/* strcpy: OK (size checked) */
       CREATE(*d->str, char, d->max_str);
       strcpy(*d->str, str);	/* strcpy: OK (size checked) */
-      terminator = 1;
+      if (!using_improved_editor)
+        action = STRINGADD_SAVE; 
     } else {
       CREATE(*d->str, char, strlen(str) + 3);
       strcpy(*d->str, str);	/* strcpy: OK (size checked) */
@@ -132,39 +148,113 @@ void string_add(struct descriptor_data *d, char *str)
   } else {
     if (strlen(str) + strlen(*d->str) + 3 > d->max_str) { /* \r\n\0 */
       send_to_char(d->character, "String too long.  Last line skipped.\r\n");
-      terminator = 1;
+      if (!using_improved_editor)
+        action = STRINGADD_SAVE; 
+      else if (action == STRINGADD_OK)
+        action = STRINGADD_ACTION;    /* No appending \r\n\0, but still let them save. */
     } else {
       RECREATE(*d->str, char, strlen(*d->str) + strlen(str) + 3); /* \r\n\0 */
       strcat(*d->str, str);	/* strcat: OK (size precalculated) */
     }
   }
 
-  if (terminator) {
-    if (STATE(d) == CON_PLAYING && (PLR_FLAGGED(d->character, PLR_MAILING))) {
-      store_mail(d->mail_to, GET_IDNUM(d->character), *d->str);
-      d->mail_to = 0;
-      free(*d->str);
-      free(d->str);
-      write_to_output(d, "Message sent!\r\n");
-      if (!IS_NPC(d->character))
-	REMOVE_BIT(PLR_FLAGS(d->character), PLR_MAILING | PLR_WRITING);
-    }
-    d->str = NULL;
+  /*
+   * Common cleanup code.
+   */
+  switch (action) {
+    case STRINGADD_ABORT:
+      switch (STATE(d)) {
+        case CON_CEDIT:
+        case CON_TEDIT:
+        case CON_REDIT:
+        case CON_MEDIT:
+        case CON_OEDIT:
+        case CON_EXDESC:
+          free(*d->str);
+          *d->str = d->backstr;
+          d->backstr = NULL;
+          d->str = NULL;
+          break;
+        default:
+          log("SYSERR: string_add: Aborting write from unknown origin.");
+          break;
+      }
+      break;
+    case STRINGADD_SAVE:
+      if (d->str && *d->str && **d->str == '\0') {
+        free(*d->str);
+        *d->str = strdup("Nothing.\r\n");
+      }
+      if (d->backstr)
+        free(d->backstr);
+      d->backstr = NULL;
+      break;
+    case STRINGADD_ACTION:
+      break;
+  }
 
-    if (d->mail_to >= BOARD_MAGIC) {
-      Board_save_board(d->mail_to - BOARD_MAGIC);
+  /* Ok, now final cleanup. */
+
+  if (action == STRINGADD_SAVE || action == STRINGADD_ABORT) {
+    int i;
+    struct {
+      int mode;
+      void (*func)(struct descriptor_data *d, int action);
+    } cleanup_modes[] = {
+      { CON_CEDIT  , cedit_string_cleanup },
+      { CON_MEDIT  , medit_string_cleanup },
+      { CON_OEDIT  , oedit_string_cleanup },
+      { CON_REDIT  , redit_string_cleanup },
+      { CON_TEDIT  , tedit_string_cleanup },
+      { CON_EXDESC , exdesc_string_cleanup },
+      { CON_PLAYING, playing_string_cleanup },
+      { -1, NULL }
+    };
+
+    for (i = 0; cleanup_modes[i].func; i++)
+      if (STATE(d) == cleanup_modes[i].mode)
+        (*cleanup_modes[i].func)(d, action);
+
+    /* Common post cleanup code. */
+    d->str = NULL;
       d->mail_to = 0;
-    }
-    if (STATE(d) == CON_EXDESC) {
-      write_to_output(d, "%s", MENU);
-      STATE(d) = CON_MENU;
-    }
-    if (STATE(d) == CON_PLAYING && d->character && !IS_NPC(d->character))
-      REMOVE_BIT(PLR_FLAGS(d->character), PLR_WRITING);
-  } else
-    strcat(*d->str, "\r\n");	/* strcat: OK (size checked) */
+    d->max_str = 0;
+    if (d->character && !IS_NPC(d->character))
+      REMOVE_BIT(PLR_FLAGS(d->character), PLR_MAILING | PLR_WRITING);
+  } else if (action != STRINGADD_ACTION && strlen(*d->str) + 3 <= d->max_str) /* 3 = \r\n\0 */
+     strcat(*d->str, "\r\n");
 }
 
+void playing_string_cleanup(struct descriptor_data *d, int action)
+{
+  if (PLR_FLAGGED(d->character, PLR_MAILING)) {
+    if (action == STRINGADD_SAVE && *d->str) {
+      store_mail(d->mail_to, GET_IDNUM(d->character), *d->str);
+      write_to_output(d, "Message sent!\r\n");
+    } else
+      write_to_output(d, "Mail aborted.\r\n");
+      free(*d->str);
+      free(d->str);
+    }
+
+  /*
+   * We have no way of knowing which slot the post was sent to so we can only give the message...
+   */
+    if (d->mail_to >= BOARD_MAGIC) {
+      Board_save_board(d->mail_to - BOARD_MAGIC);
+      if (action == STRINGADD_ABORT)
+        write_to_output(d, "Post not aborted, use REMOVE <post #>.\r\n");
+    }
+}
+
+void exdesc_string_cleanup(struct descriptor_data *d, int action)
+{
+  if (action == STRINGADD_ABORT)
+    write_to_output(d, "Description aborted.\r\n");
+  
+  write_to_output(d, "%s", CONFIG_MENU);
+  STATE(d) = CON_MENU;
+}
 
 
 /* **********************************************************************
@@ -196,7 +286,7 @@ ACMD(do_skillset)
   }
 
   if (!(vict = get_char_vis(ch, name, NULL, FIND_CHAR_WORLD))) {
-    send_to_char(ch, "%s", NOPERSON);
+    send_to_char(ch, "%s", CONFIG_NOPERSON);
     return;
   }
   skip_spaces(&argument);

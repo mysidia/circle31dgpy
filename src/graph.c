@@ -26,7 +26,6 @@ ACMD(do_say);
 
 /* external variables */
 extern const char *dirs[];
-extern int track_through_doors;
 
 /* local functions */
 int VALID_EDGE(room_rnum x, int y);
@@ -56,7 +55,7 @@ int VALID_EDGE(room_rnum x, int y)
 {
   if (world[x].dir_option[y] == NULL || TOROOM(x, y) == NOWHERE)
     return 0;
-  if (track_through_doors == FALSE && IS_CLOSED(x, y))
+  if (CONFIG_TRACK_T_DOORS == FALSE && IS_CLOSED(x, y))
     return 0;
   if (ROOM_FLAGGED(TOROOM(x, y), ROOM_NOTRACK) || IS_MARKED(TOROOM(x, y)))
     return 0;

@@ -1,0 +1,39 @@
+This is the OasisOLC version 2.0.4.
+
+To add to _unaltered_ Circle3.1 code, cd to the circle-3.1/
+directory and type:
+
+patch -p1 < /wherever/you/unpacked/circle-3.1-oasis-2.0.4.patch
+./configure
+cd src
+make
+
+If you've altered the MUD code already, I recommend handpatching.
+
+Please note: This is a major change to most, if not all of the
+files included in CircleMUD. We have gone to great lengths to
+remove bugs and make the code stable. However, if applying this
+patch makes it impossible to boot your MUD, make your house burn
+down or your girl/boyfriend break up, we're not taking the blame.
+Apply the patch at your own risk!
+
+Bug reports should go to kip_potter@hotmail.com, welcor@dune.net,
+circle@post.queensu.ca or /dev/null.
+
+Regards,
+
+Welcor 
+(on behalf of Mythran, who couldn't come to the phone right now)
+
+A brief overview of changes since the previous version:
+
+* Upped version number to 2.0.4
+* Added empty builder field to lib/world/zon/*.zon
+* Moved Oasis docfiles into doc/
+* Fixed missing/skewed menu items in cedit
+* Text editor cedit items now clean up properly on exit
+* Repaired cosmetic bug in munged circlemud_version string
+* Kludged around a chicken and egg problem in load_config()
+* Repaired a bunch of potential format string exploits
+* Added missing can_edit check to zedit
+* Fixed free_strings() crash for rooms with multiple ex_description

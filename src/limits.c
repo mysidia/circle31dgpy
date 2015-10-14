@@ -20,17 +20,6 @@
 #include "interpreter.h"
 
 
-/* external variables */
-extern int max_exp_gain;
-extern int max_exp_loss;
-extern int idle_rent_time;
-extern int idle_max_level;
-extern int idle_void;
-extern int immort_level_ok;
-extern int use_autowiz;
-extern int min_wizlist_lev;
-extern int free_rent;
-
 /* local functions */
 int graf(int grafage, int p0, int p1, int p2, int p3, int p4, int p5, int p6);
 void run_autowiz(void);
@@ -225,16 +214,16 @@ void set_title(struct char_data *ch, char *title)
 void run_autowiz(void)
 {
 #if defined(CIRCLE_UNIX) || defined(CIRCLE_WINDOWS)
-  if (use_autowiz) {
+  if (CONFIG_USE_AUTOWIZ) {
     size_t res;
     char buf[256];
 
 #if defined(CIRCLE_UNIX)
     res = snprintf(buf, sizeof(buf), "nice ../bin/autowiz %d %s %d %s %d &",
-	min_wizlist_lev, WIZLIST_FILE, LVL_IMMORT, IMMLIST_FILE, (int) getpid());
+	CONFIG_MIN_WIZLIST_LEV, WIZLIST_FILE, LVL_IMMORT, IMMLIST_FILE, (int) getpid());
 #elif defined(CIRCLE_WINDOWS)
     res = snprintf(buf, sizeof(buf), "autowiz %d %s %d %s",
-	min_wizlist_lev, WIZLIST_FILE, LVL_IMMORT, IMMLIST_FILE);
+	CONFIG_MIN_WIZLIST_LEV, WIZLIST_FILE, LVL_IMMORT, IMMLIST_FILE);
 #endif /* CIRCLE_WINDOWS */
 
     /* Abusing signed -> unsigned conversion to avoid '-1' check. */
@@ -263,9 +252,9 @@ void gain_exp(struct char_data *ch, int gain)
     return;
   }
   if (gain > 0) {
-    gain = MIN(max_exp_gain, gain);	/* put a cap on the max gain per kill */
+    gain = MIN(CONFIG_MAX_EXP_GAIN, gain);	/* put a cap on the max gain per kill */
     GET_EXP(ch) += gain;
-    while (GET_LEVEL(ch) < LVL_IMMORT - immort_level_ok &&
+    while (GET_LEVEL(ch) < LVL_IMMORT - CONFIG_IMMORT_LEVEL_OK &&
 	GET_EXP(ch) >= level_exp(GET_CLASS(ch), GET_LEVEL(ch) + 1)) {
       GET_LEVEL(ch) += 1;
       num_levels++;
@@ -285,7 +274,7 @@ void gain_exp(struct char_data *ch, int gain)
         run_autowiz();
     }
   } else if (gain < 0) {
-    gain = MAX(-max_exp_loss, gain);	/* Cap max exp lost per death */
+    gain = MAX(-CONFIG_MAX_EXP_LOSS, gain);	/* Cap max exp lost per death */
     GET_EXP(ch) += gain;
     if (GET_EXP(ch) < 0)
       GET_EXP(ch) = 0;
@@ -363,7 +352,7 @@ void gain_condition(struct char_data *ch, int condition, int value)
 
 void check_idling(struct char_data *ch)
 {
-  if (++(ch->char_specials.timer) > idle_void) {
+  if (++(ch->char_specials.timer) > CONFIG_IDLE_VOID) {
     if (GET_WAS_IN(ch) == NOWHERE && IN_ROOM(ch) != NOWHERE) {
       GET_WAS_IN(ch) = IN_ROOM(ch);
       if (FIGHTING(ch)) {
@@ -376,7 +365,7 @@ void check_idling(struct char_data *ch)
       Crash_crashsave(ch);
       char_from_room(ch);
       char_to_room(ch, 1);
-    } else if (ch->char_specials.timer > idle_rent_time) {
+    } else if (ch->char_specials.timer > CONFIG_IDLE_RENT_TIME) {
       if (IN_ROOM(ch) != NOWHERE)
 	char_from_room(ch);
       char_to_room(ch, 3);
@@ -389,7 +378,7 @@ void check_idling(struct char_data *ch)
 	ch->desc->character = NULL;
 	ch->desc = NULL;
       }
-      if (free_rent)
+      if (CONFIG_FREE_RENT)
 	Crash_rentsave(ch, 0);
       else
 	Crash_idlesave(ch);
@@ -433,7 +422,7 @@ void point_update(void)
     }
     if (!IS_NPC(i)) {
       update_char_objects(i);
-      if (GET_LEVEL(i) < idle_max_level)
+      if (GET_LEVEL(i) < CONFIG_IDLE_MAX_LEVEL)
 	check_idling(i);
     }
   }

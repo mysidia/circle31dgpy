@@ -1177,7 +1177,7 @@ ACMD(do_users)
       continue;
     if (STATE(d) == CON_PLAYING && deadweight)
       continue;
-    if (STATE(d) == CON_PLAYING) {
+    if (IS_PLAYING(d)) {
       if (d->original)
 	tch = d->original;
       else if (!(tch = d->character))
@@ -1283,6 +1283,7 @@ ACMD(do_gen_ps)
     break;
   case SCMD_VERSION:
     send_to_char(ch, "%s\r\n", circlemud_version);
+    send_to_char(ch, "%s\r\n", oasisolc_version);
     break;
   case SCMD_WHOAMI:
     send_to_char(ch, "%s\r\n", GET_NAME(ch));
@@ -1409,8 +1410,7 @@ ACMD(do_where)
 ACMD(do_levels)
 {
   char buf[MAX_STRING_LENGTH];
-  size_t i, len = 0;
-  int nlen;
+  size_t i, len = 0, nlen;
 
   if (IS_NPC(ch)) {
     send_to_char(ch, "You ain't nothin' but a hound-dog.\r\n");
@@ -1506,7 +1506,7 @@ ACMD(do_diagnose)
 
   if (*buf) {
     if (!(vict = get_char_vis(ch, buf, NULL, FIND_CHAR_ROOM)))
-      send_to_char(ch, "%s", NOPERSON);
+      send_to_char(ch, "%s", CONFIG_NOPERSON);
     else
       diag_char_to_char(vict, ch);
   } else {

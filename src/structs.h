@@ -214,7 +214,8 @@
 #define PRF_NOGOSS	(1 << 19) /* Can't hear gossip channel		*/
 #define PRF_NOGRATZ	(1 << 20) /* Can't hear grats channel		*/
 #define PRF_ROOMFLAGS	(1 << 21) /* Can see room flags (ROOM_x)	*/
-#define PRF_DISPAUTO	(1 << 22) /* Show prompt HP, MP, MV when < 30%.	*/
+#define PRF_DISPAUTO	(1 << 22) /* Show prompt HP, MP, MV when < 25%.	*/
+#define PRF_CLS         (1 << 23) /* Clear screen in OLC                */
 
 /* Affect bits: used in char_data.char_specials.saved.affected_by */
 /* WARNING: In the world files, NEVER set the bits marked "R" ("Reserved") */
@@ -261,6 +262,13 @@
 #define CON_DELCNF1	 15	/* Delete confirmation 1		*/
 #define CON_DELCNF2	 16	/* Delete confirmation 2		*/
 #define CON_DISCONNECT	 17	/* In-game link loss (leave character)	*/
+#define CON_OEDIT	 18	/* OLC mode - object editor		*/
+#define CON_REDIT	 19	/* OLC mode - room editor		*/
+#define CON_ZEDIT	 20	/* OLC mode - zone info editor		*/
+#define CON_MEDIT	 21	/* OLC mode - mobile editor		*/
+#define CON_SEDIT	 22	/* OLC mode - shop editor		*/
+#define CON_TEDIT	 23	/* OLC mode - text editor		*/
+#define CON_CEDIT	 24	/* OLC mode - conf editor		*/
 
 /* Character equipment positions: used as index for char_data.equipment[] */
 /* NOTE: Don't confuse these constants with the ITEM_ bitvectors
@@ -457,6 +465,9 @@
 #define LVL_GOD		32
 #define LVL_IMMORT	31
 
+/* Builders that have access to the saveall command */
+#define LVL_BUILDER	LVL_GRGOD
+
 /* Level of the 'freeze' command */
 #define LVL_FREEZE	LVL_GRGOD
 
@@ -579,6 +590,7 @@ struct extra_descr_data {
 struct obj_flag_data {
    int	value[4];	/* Values of the item (see list)    */
    byte type_flag;	/* Type of item			    */
+   int level;		/* Minimum level of object.		*/
    int /*bitvector_t*/	wear_flags;	/* Where you can wear it	    */
    int /*bitvector_t*/	extra_flags;	/* If it hums, glows, etc.	    */
    int	weight;		/* Weigt what else                  */
@@ -834,7 +846,7 @@ struct player_special_data_saved {
    ubyte spare4;
    ubyte spare5;
    int spells_to_learn;		/* How many can you learn yet this level*/
-   int spare7;
+   int olc_zone;
    int spare8;
    int spare9;
    int spare10;
@@ -990,7 +1002,8 @@ struct descriptor_data {
    int  showstr_count;		/* number of pages to page through	*/
    int  showstr_page;		/* which page are we currently showing?	*/
    char	**str;			/* for the modify-str system		*/
-   size_t max_str;	        /*		-			*/
+   char *backstr;		/* backup string for modify-str system	*/
+   size_t max_str;	        /* maximum size of string in modify-str	*/
    long	mail_to;		/* name for mail system			*/
    int	has_prompt;		/* is the user at a prompt?             */
    char	inbuf[MAX_RAW_INPUT_LENGTH];  /* buffer for raw input		*/
@@ -1008,6 +1021,7 @@ struct descriptor_data {
    struct descriptor_data *snooping; /* Who is this char snooping	*/
    struct descriptor_data *snoop_by; /* And who is snooping this char	*/
    struct descriptor_data *next; /* link to next descriptor		*/
+   struct oasis_olc_data *olc;   /* OLC info                            */
 };
 
 
@@ -1101,3 +1115,102 @@ struct guild_info_type {
   room_vnum guild_room;
   int direction;
 };
+
+/*
+ * Config structs
+ * 
+ */
+ 
+ /*
+ * The game configuration structure used for configurating the game play 
+ * variables.
+ */
+struct game_data {
+  int pk_allowed;         /* Is player killing allowed? 	  */
+  int pt_allowed;         /* Is player thieving allowed?	  */
+  int level_can_shout;	  /* Level player must be to shout.	  */
+  int holler_move_cost;	  /* Cost to holler in move points.	  */
+  int tunnel_size;        /* Number of people allowed in a tunnel.*/
+  int max_exp_gain;       /* Maximum experience gainable per kill.*/
+  int max_exp_loss;       /* Maximum experience losable per death.*/
+  int max_npc_corpse_time;/* Num tics before NPC corpses decompose*/
+  int max_pc_corpse_time; /* Num tics before PC corpse decomposes.*/
+  int idle_void;          /* Num tics before PC sent to void(idle)*/
+  int idle_rent_time;     /* Num tics before PC is autorented.	  */
+  int idle_max_level;     /* Level of players immune to idle.     */
+  int dts_are_dumps;      /* Should items in dt's be junked?	  */
+  int load_into_inventory;/* Objects load in immortals inventory. */
+  int track_through_doors;/* Track through doors while closed?    */
+  int immort_level_ok;    /* Automatically level mortals to imm?  */
+  
+  char *OK;               /* When player receives 'Okay.' text.	  */
+  char *NOPERSON;         /* 'No-one by that name here.'	  */
+  char *NOEFFECT;         /* 'Nothing seems to happen.'	          */
+};
+
+
+
+/*
+ * The rent and crashsave options.
+ */
+struct crash_save_data {
+  int free_rent;          /* Should the MUD allow rent for free?  */
+  int max_obj_save;       /* Max items players can rent.          */
+  int min_rent_cost;      /* surcharge on top of item costs.	  */
+  int auto_save;          /* Does the game automatically save ppl?*/
+  int autosave_time;      /* if auto_save=TRUE, how often?        */
+  int crash_file_timeout; /* Life of crashfiles and idlesaves.    */
+  int rent_file_timeout;  /* Lifetime of normal rent files in days*/
+};
+
+
+/*
+ * The room numbers. 
+ */
+struct room_numbers {
+  room_vnum mortal_start_room;	/* vnum of room that mortals enter at.  */
+  room_vnum immort_start_room;  /* vnum of room that immorts enter at.  */
+  room_vnum frozen_start_room;  /* vnum of room that frozen ppl enter.  */
+  room_vnum donation_room_1;    /* vnum of donation room #1.            */
+  room_vnum donation_room_2;    /* vnum of donation room #2.            */
+  room_vnum donation_room_3;    /* vnum of donation room #3.	        */
+};
+
+
+/*
+ * The game operational constants.
+ */
+struct game_operation {
+  ush_int DFLT_PORT;        /* The default port to run the game.  */
+  char *DFLT_IP;            /* Bind to all interfaces.		  */
+  char *DFLT_DIR;           /* The default directory (lib).	  */
+  char *LOGNAME;            /* The file to log messages to.	  */
+  int max_playing;          /* Maximum number of players allowed. */
+  int max_filesize;         /* Maximum size of misc files.	  */
+  int max_bad_pws;          /* Maximum number of pword attempts.  */
+  int siteok_everyone;	    /* Everyone from all sites are SITEOK.*/
+  int nameserver_is_slow;   /* Is the nameserver slow or fast?	  */
+  char *MENU;               /* The MAIN MENU.			  */
+  char *WELC_MESSG;	    /* The welcome message.		  */
+  char *START_MESSG;        /* The start msg for new characters.  */
+};
+
+/*
+ * The Autowizard options.
+ */
+struct autowiz_data {
+  int use_autowiz;        /* Use the autowiz feature?		*/
+  int min_wizlist_lev;    /* Minimun level to show on wizlist.	*/
+};
+
+/*
+ * The main configuration structure;
+ */
+struct config_data {
+  struct game_data       play;		/* play related config   */
+  struct crash_save_data csd;		/* rent and save related */
+  struct room_numbers    room_nums;	/* room numbers          */
+  struct game_operation  operation;	/* basic operation       */
+  struct autowiz_data    autowiz;	/* autowiz related stuff */
+};
+

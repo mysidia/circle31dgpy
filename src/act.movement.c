@@ -22,10 +22,6 @@
 #include "house.h"
 #include "constants.h"
 
-
-/* external variables  */
-extern int tunnel_size;
-
 /* external functions */
 int special(struct char_data *ch, int cmd, char *arg);
 void death_cry(struct char_data *ch);
@@ -136,8 +132,8 @@ int do_simple_move(struct char_data *ch, int dir, int need_specials_check)
     }
   }
   if (ROOM_FLAGGED(EXIT(ch, dir)->to_room, ROOM_TUNNEL) &&
-      num_pc_in_room(&(world[EXIT(ch, dir)->to_room])) >= tunnel_size) {
-    if (tunnel_size > 1)
+      num_pc_in_room(&(world[EXIT(ch, dir)->to_room])) >= CONFIG_TUNNEL_SIZE) {
+    if (CONFIG_TUNNEL_SIZE > 1)
       send_to_char(ch, "There isn't enough room for you to go there!\r\n");
     else
       send_to_char(ch, "There isn't enough room there for more than one person!\r\n");
@@ -343,14 +339,14 @@ void do_doorcmd(struct char_data *ch, struct obj_data *obj, int door, int scmd)
     OPEN_DOOR(IN_ROOM(ch), obj, door);
     if (back)
       OPEN_DOOR(other_room, obj, rev_dir[door]);
-    send_to_char(ch, "%s", OK);
+    send_to_char(ch, "%s", CONFIG_OK);
     break;
 
   case SCMD_CLOSE:
     CLOSE_DOOR(IN_ROOM(ch), obj, door);
     if (back)
       CLOSE_DOOR(other_room, obj, rev_dir[door]);
-    send_to_char(ch, "%s", OK);
+    send_to_char(ch, "%s", CONFIG_OK);
     break;
 
   case SCMD_LOCK:
@@ -663,7 +659,7 @@ ACMD(do_wake)
     if (GET_POS(ch) == POS_SLEEPING)
       send_to_char(ch, "Maybe you should wake yourself up first.\r\n");
     else if ((vict = get_char_vis(ch, arg, NULL, FIND_CHAR_ROOM)) == NULL)
-      send_to_char(ch, "%s", NOPERSON);
+      send_to_char(ch, "%s", CONFIG_NOPERSON);
     else if (vict == ch)
       self = 1;
     else if (AWAKE(vict))
@@ -701,7 +697,7 @@ ACMD(do_follow)
 
   if (*buf) {
     if (!(leader = get_char_vis(ch, buf, NULL, FIND_CHAR_ROOM))) {
-      send_to_char(ch, "%s", NOPERSON);
+      send_to_char(ch, "%s", CONFIG_NOPERSON);
       return;
     }
   } else {

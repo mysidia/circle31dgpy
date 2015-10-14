@@ -29,7 +29,6 @@ extern char *class_abbrevs[];
 extern time_t boot_time;
 extern int circle_shutdown, circle_reboot;
 extern int circle_restrict;
-extern int load_into_inventory;
 extern int buf_switches, buf_largecount, buf_overflows;
 extern int top_of_p_table;
 
@@ -46,6 +45,8 @@ void reset_zone(zone_rnum zone);
 void roll_real_abils(struct char_data *ch);
 int parse_class(char arg);
 void run_autowiz(void);
+int save_all(void);
+void print_zone(struct char_data *ch, zone_vnum vnum);
 
 /* local functions */
 int perform_set(struct char_data *ch, struct char_data *vict, int mode, char *val_arg);
@@ -89,7 +90,7 @@ size_t print_zone_to_buf(char *bufptr, size_t left, zone_rnum zone);
 ACMD(do_show);
 ACMD(do_set);
 void snoop_check(struct char_data *ch);
-
+ACMD(do_saveall);
 
 ACMD(do_echo)
 {
@@ -108,7 +109,7 @@ ACMD(do_echo)
     act(buf, FALSE, ch, 0, 0, TO_ROOM);
 
     if (PRF_FLAGGED(ch, PRF_NOREPEAT))
-      send_to_char(ch, "%s", OK);
+      send_to_char(ch, "%s", CONFIG_OK);
     else
       act(buf, FALSE, ch, 0, 0, TO_CHAR);
   }
@@ -127,7 +128,7 @@ ACMD(do_send)
     return;
   }
   if (!(vict = get_char_vis(ch, arg, NULL, FIND_CHAR_WORLD))) {
-    send_to_char(ch, "%s", NOPERSON);
+    send_to_char(ch, "%s", CONFIG_NOPERSON);
     return;
   }
   send_to_char(vict, "%s\r\n", buf);
@@ -273,7 +274,7 @@ ACMD(do_trans)
     send_to_char(ch, "Whom do you wish to transfer?\r\n");
   else if (str_cmp("all", buf)) {
     if (!(victim = get_char_vis(ch, buf, NULL, FIND_CHAR_WORLD)))
-      send_to_char(ch, "%s", NOPERSON);
+      send_to_char(ch, "%s", CONFIG_NOPERSON);
     else if (victim == ch)
       send_to_char(ch, "That doesn't make much sense, does it?\r\n");
     else {
@@ -306,7 +307,7 @@ ACMD(do_trans)
 	act("$n has transferred you!", FALSE, ch, 0, victim, TO_VICT);
 	look_at_room(victim, 0);
       }
-    send_to_char(ch, "%s", OK);
+    send_to_char(ch, "%s", CONFIG_OK);
   }
 }
 
@@ -323,7 +324,7 @@ ACMD(do_teleport)
   if (!*buf)
     send_to_char(ch, "Whom do you wish to teleport?\r\n");
   else if (!(victim = get_char_vis(ch, buf, NULL, FIND_CHAR_WORLD)))
-    send_to_char(ch, "%s", NOPERSON);
+    send_to_char(ch, "%s", CONFIG_NOPERSON);
   else if (victim == ch)
     send_to_char(ch, "Use 'goto' to teleport yourself.\r\n");
   else if (GET_LEVEL(victim) >= GET_LEVEL(ch))
@@ -331,7 +332,7 @@ ACMD(do_teleport)
   else if (!*buf2)
     send_to_char(ch, "Where do you wish to send this person?\r\n");
   else if ((target = find_target_room(ch, buf2)) != NOWHERE) {
-    send_to_char(ch, "%s", OK);
+    send_to_char(ch, "%s", CONFIG_OK);
     act("$n disappears in a puff of smoke.", FALSE, victim, 0, 0, TO_ROOM);
     char_from_room(victim);
     char_to_room(victim, target);
@@ -482,8 +483,8 @@ void do_stat_object(struct char_data *ch, struct obj_data *j)
   sprintbit(GET_OBJ_EXTRA(j), extra_bits, buf, sizeof(buf));
   send_to_char(ch, "Extra flags   : %s\r\n", buf);
 
-  send_to_char(ch, "Weight: %d, Value: %d, Cost/day: %d, Timer: %d\r\n",
-     GET_OBJ_WEIGHT(j), GET_OBJ_COST(j), GET_OBJ_RENT(j), GET_OBJ_TIMER(j));
+  send_to_char(ch, "Weight: %d, Value: %d, Cost/day: %d, Timer: %d, Min level: %d\r\n",
+     GET_OBJ_WEIGHT(j), GET_OBJ_COST(j), GET_OBJ_RENT(j), GET_OBJ_TIMER(j), GET_OBJ_LEVEL(j));
 
   send_to_char(ch, "In room: %d (%s), ", GET_ROOM_VNUM(IN_ROOM(j)),
 	IN_ROOM(j) == NOWHERE ? "Nowhere" : world[IN_ROOM(j)].name);
@@ -628,10 +629,14 @@ void do_stat_character(struct char_data *ch, struct char_data *k)
 	    buf1, buf2, k->player.time.played / 3600,
 	    ((k->player.time.played % 3600) / 60), age(k)->year);
 
-    send_to_char(ch, "Hometown: [%d], Speaks: [%d/%d/%d], (STL[%d]/per[%d]/NSTL[%d])\r\n",
+    send_to_char(ch, "Hometown: [%d], Speaks: [%d/%d/%d], (STL[%d]/per[%d]/NSTL[%d])",
 	 k->player.hometown, GET_TALK(k, 0), GET_TALK(k, 1), GET_TALK(k, 2),
 	    GET_PRACTICES(k), int_app[GET_INT(k)].learn,
 	    wis_app[GET_WIS(k)].bonus);
+    /*. Display OLC zone for immorts .*/
+    if (GET_LEVEL(k) >= LVL_IMMORT)
+      send_to_char(ch, ", OLC[%d]", GET_OLC_ZONE(k));
+    send_to_char(ch, "\r\n");
   }
   send_to_char(ch, "Str: [%s%d/%d%s]  Int: [%s%d%s]  Wis: [%s%d%s]  "
 	  "Dex: [%s%d%s]  Con: [%s%d%s]  Cha: [%s%d%s]\r\n",
@@ -748,7 +753,7 @@ ACMD(do_stat)
   half_chop(argument, buf1, buf2);
 
   if (!*buf1) {
-    send_to_char(ch, "Stats on who or what?\r\n");
+    send_to_char(ch, "Stats on who or what or where?\r\n");
     return;
   } else if (is_abbrev(buf1, "room")) {
     do_stat_room(ch);
@@ -801,6 +806,14 @@ ACMD(do_stat)
       else
 	send_to_char(ch, "No such object around.\r\n");
     }
+  } else if (is_abbrev(buf1, "zone")) {
+    if (!*buf2) {
+      send_to_char(ch, "Stats on which zone?\r\n");
+      return;
+    } else {
+      print_zone(ch, atoi(buf2));
+      return;
+    }
   } else {
     char *name = buf1;
     int number = get_number(&name);
@@ -847,6 +860,11 @@ ACMD(do_shutdown)
     send_to_all("Shutting down for maintenance.\r\n");
     touch(KILLSCRIPT_FILE);
     circle_shutdown = 1;
+  } else if (!str_cmp(arg, "now")) {
+    log("(GC) Shutdown NOW by %s.", GET_NAME(ch));
+    send_to_all("Rebooting.. come back in a minute or two.\r\n");
+    circle_shutdown = 1;
+    circle_reboot = 2; /* do not autosave olc */
   } else if (!str_cmp(arg, "pause")) {
     log("(GC) Shutdown by %s.", GET_NAME(ch));
     send_to_all("Shutting down for maintenance.\r\n");
@@ -923,7 +941,7 @@ ACMD(do_snoop)
       send_to_char(ch, "You can't.\r\n");
       return;
     }
-    send_to_char(ch, "%s", OK);
+    send_to_char(ch, "%s", CONFIG_OK);
 
     if (ch->desc->snooping)
       ch->desc->snooping->snoop_by = NULL;
@@ -960,7 +978,7 @@ ACMD(do_switch)
 		&& !House_can_enter(ch, GET_ROOM_VNUM(IN_ROOM(victim))))
     send_to_char(ch, "That's private property -- no trespassing!\r\n");
   else {
-    send_to_char(ch, "%s", OK);
+    send_to_char(ch, "%s", CONFIG_OK);
 
     ch->desc->character = victim;
     ch->desc->original = ch;
@@ -1041,7 +1059,7 @@ ACMD(do_load)
       return;
     }
     obj = read_object(r_num, REAL);
-    if (load_into_inventory)
+    if (CONFIG_LOAD_INVENTORY)
       obj_to_char(obj, ch);
     else
       obj_to_room(obj, IN_ROOM(ch));
@@ -1134,7 +1152,7 @@ ACMD(do_purge)
       return;
     }
 
-    send_to_char(ch, "%s", OK);
+    send_to_char(ch, "%s", CONFIG_OK);
   } else {			/* no argument. clean out the room */
     int i;
 
@@ -1256,7 +1274,7 @@ ACMD(do_advance)
 	"You feel slightly different.", FALSE, ch, 0, victim, TO_VICT);
   }
 
-  send_to_char(ch, "%s", OK);
+  send_to_char(ch, "%s", CONFIG_OK);
 
   if (newlevel < oldlevel)
     log("(GC) %s demoted %s from level %d to %d.",
@@ -1289,7 +1307,7 @@ ACMD(do_restore)
   if (!*buf)
     send_to_char(ch, "Whom do you wish to restore?\r\n");
   else if (!(vict = get_char_vis(ch, buf, NULL, FIND_CHAR_WORLD)))
-    send_to_char(ch, "%s", NOPERSON);
+    send_to_char(ch, "%s", CONFIG_NOPERSON);
   else if (!IS_NPC(vict) && ch != vict && GET_LEVEL(vict) >= GET_LEVEL(ch))
     send_to_char(ch, "They don't need your help.\r\n");
   else {
@@ -1314,7 +1332,7 @@ ACMD(do_restore)
     }
     update_pos(vict);
     affect_total(vict);
-    send_to_char(ch, "%s", OK);
+    send_to_char(ch, "%s", CONFIG_OK);
     act("You have been fully healed by $N!", FALSE, vict, 0, ch, TO_CHAR);
   }
 }
@@ -1396,7 +1414,7 @@ ACMD(do_gecho)
 	send_to_char(pt->character, "%s\r\n", argument);
 
     if (PRF_FLAGGED(ch, PRF_NOREPEAT))
-      send_to_char(ch, "%s", OK);
+      send_to_char(ch, "%s", CONFIG_OK);
     else
       send_to_char(ch, "%s\r\n", argument);
   }
@@ -1423,7 +1441,7 @@ ACMD(do_poofset)
   else
     *msg = strdup(argument);
 
-  send_to_char(ch, "%s", OK);
+  send_to_char(ch, "%s", CONFIG_OK);
 }
 
 
@@ -1587,17 +1605,17 @@ ACMD(do_force)
     send_to_char(ch, "Whom do you wish to force do what?\r\n");
   else if ((GET_LEVEL(ch) < LVL_GRGOD) || (str_cmp("all", arg) && str_cmp("room", arg))) {
     if (!(vict = get_char_vis(ch, arg, NULL, FIND_CHAR_WORLD)))
-      send_to_char(ch, "%s", NOPERSON);
+      send_to_char(ch, "%s", CONFIG_NOPERSON);
     else if (!IS_NPC(vict) && GET_LEVEL(ch) <= GET_LEVEL(vict))
       send_to_char(ch, "No, no, no!\r\n");
     else {
-      send_to_char(ch, "%s", OK);
+      send_to_char(ch, "%s", CONFIG_OK);
       act(buf1, TRUE, ch, NULL, vict, TO_VICT);
       mudlog(NRM, MAX(LVL_GOD, GET_INVIS_LEV(ch)), TRUE, "(GC) %s forced %s to %s", GET_NAME(ch), GET_NAME(vict), to_force);
       command_interpreter(vict, to_force);
     }
   } else if (!str_cmp("room", arg)) {
-    send_to_char(ch, "%s", OK);
+    send_to_char(ch, "%s", CONFIG_OK);
     mudlog(NRM, MAX(LVL_GOD, GET_INVIS_LEV(ch)), TRUE, "(GC) %s forced room %d to %s",
 		GET_NAME(ch), GET_ROOM_VNUM(IN_ROOM(ch)), to_force);
 
@@ -1609,7 +1627,7 @@ ACMD(do_force)
       command_interpreter(vict, to_force);
     }
   } else { /* force all */
-    send_to_char(ch, "%s", OK);
+    send_to_char(ch, "%s", CONFIG_OK);
     mudlog(NRM, MAX(LVL_GOD, GET_INVIS_LEV(ch)), TRUE, "(GC) %s forced all to %s", GET_NAME(ch), to_force);
 
     for (i = descriptor_list; i; i = next_desc) {
@@ -1711,7 +1729,7 @@ ACMD(do_wiznet)
   }
 
   if (PRF_FLAGGED(ch, PRF_NOREPEAT))
-    send_to_char(ch, "%s", OK);
+    send_to_char(ch, "%s", CONFIG_OK);
 }
 
 
@@ -1871,8 +1889,8 @@ size_t print_zone_to_buf(char *bufptr, size_t left, zone_rnum zone)
 ACMD(do_show)
 {
   struct char_file_u vbuf;
-  int i, j, k, l, con, nlen;		/* i, j, k to specifics? */
-  size_t len;
+  int i, j, k, l, con;		/* i, j, k to specifics? */
+  size_t len, nlen;
   zone_rnum zrn;
   zone_vnum zvn;
   byte self = FALSE;
@@ -2167,6 +2185,7 @@ ACMD(do_show)
    { "age",		LVL_GRGOD,	BOTH,	NUMBER },
    { "height",		LVL_GOD,	BOTH,	NUMBER },
    { "weight",		LVL_GOD,	BOTH,	NUMBER },  /* 50 */
+   { "olc",		LVL_IMPL,	PC,	NUMBER },
    { "\n", 0, BOTH, MISC }
   };
 
@@ -2214,7 +2233,7 @@ int perform_set(struct char_data *ch, struct char_data *vict, int mode,
     value = atoi(val_arg);
     send_to_char(ch, "%s's %s set to %d.\r\n", GET_NAME(vict), set_fields[mode].cmd, value);
   } else
-    send_to_char(ch, "%s", OK);
+    send_to_char(ch, "%s", CONFIG_OK);
 
   switch (mode) {
   case 0:
@@ -2493,6 +2512,10 @@ int perform_set(struct char_data *ch, struct char_data *vict, int mode,
     affect_total(vict);
     break;
 
+  case 51:
+    GET_OLC_ZONE(vict) = value;
+    break;
+
   default:
     send_to_char(ch, "Can't set that!\r\n");
     return (0);
@@ -2586,3 +2609,12 @@ ACMD(do_set)
     free_char(cbuf);
 }
 
+ACMD(do_saveall)
+{
+ if (GET_LEVEL(ch) < LVL_BUILDER)
+    send_to_char (ch, "You are not holy enough to use this privelege.\n\r");
+ else {
+    save_all();
+    send_to_char(ch, "World files saved.\n\r");
+ }
+}

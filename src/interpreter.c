@@ -22,7 +22,10 @@
 #include "handler.h"
 #include "mail.h"
 #include "screen.h"
-
+#include "genolc.h"
+#include "oasis.h"
+#include "tedit.h"
+#include "improved-edit.h"
 
 /* external variables */
 extern room_rnum r_mortal_start_room;
@@ -32,14 +35,10 @@ extern const char *class_menu;
 extern char *motd;
 extern char *imotd;
 extern char *background;
-extern char *MENU;
-extern char *WELC_MESSG;
-extern char *START_MESSG;
 extern struct player_index_element *player_table;
 extern int top_of_p_table;
 extern int circle_restrict;
 extern int no_specials;
-extern int max_bad_pws;
 
 /* external functions */
 void echo_on(struct descriptor_data *d);
@@ -78,11 +77,13 @@ ACMD(do_credits);
 ACMD(do_date);
 ACMD(do_dc);
 ACMD(do_diagnose);
+ACMD(do_dig);
 ACMD(do_display);
 ACMD(do_drink);
 ACMD(do_drop);
 ACMD(do_eat);
 ACMD(do_echo);
+ACMD(do_edit);		/* Mainly intended as a test function. */
 ACMD(do_enter);
 ACMD(do_equipment);
 ACMD(do_examine);
@@ -121,6 +122,7 @@ ACMD(do_load);
 ACMD(do_look);
 /* ACMD(do_move); -- interpreter.h */
 ACMD(do_not_here);
+ACMD(do_oasis);
 ACMD(do_olc);
 ACMD(do_order);
 ACMD(do_page);
@@ -140,6 +142,7 @@ ACMD(do_rest);
 ACMD(do_restore);
 ACMD(do_return);
 ACMD(do_save);
+ACMD(do_saveall);
 ACMD(do_say);
 ACMD(do_score);
 ACMD(do_send);
@@ -238,6 +241,7 @@ cpp_extern const struct command_info cmd_info[] = {
 
   { "cast"     , POS_SITTING , do_cast     , 1, 0 },
   { "cackle"   , POS_RESTING , do_action   , 0, 0 },
+  { "cedit"    , POS_DEAD    , do_oasis    , LVL_IMPL, SCMD_OASIS_CEDIT },
   { "check"    , POS_STANDING, do_not_here , 1, 0 },
   { "chuckle"  , POS_RESTING , do_action   , 0, 0 },
   { "clap"     , POS_RESTING , do_action   , 0, 0 },
@@ -264,6 +268,7 @@ cpp_extern const struct command_info cmd_info[] = {
   { "dc"       , POS_DEAD    , do_dc       , LVL_GOD, 0 },
   { "deposit"  , POS_STANDING, do_not_here , 1, 0 },
   { "diagnose" , POS_RESTING , do_diagnose , 0, 0 },
+  { "dig"      , POS_DEAD    , do_dig      , LVL_BUILDER, 0 },
   { "display"  , POS_DEAD    , do_display  , 0, 0 },
   { "donate"   , POS_RESTING , do_drop     , 0, SCMD_DONATE },
   { "drink"    , POS_RESTING , do_drink    , 0, SCMD_DRINK },
@@ -272,6 +277,7 @@ cpp_extern const struct command_info cmd_info[] = {
 
   { "eat"      , POS_RESTING , do_eat      , 0, SCMD_EAT },
   { "echo"     , POS_SLEEPING, do_echo     , LVL_IMMORT, SCMD_ECHO },
+  { "edit"     , POS_DEAD    , do_edit	   ,LVL_IMPL, 0 },	/* Testing! */
   { "emote"    , POS_RESTING , do_echo     , 1, SCMD_EMOTE },
   { ":"        , POS_RESTING, do_echo      , 1, SCMD_EMOTE },
   { "embrace"  , POS_STANDING, do_action   , 0, 0 },
@@ -356,6 +362,8 @@ cpp_extern const struct command_info cmd_info[] = {
   { "motd"     , POS_DEAD    , do_gen_ps   , 0, SCMD_MOTD },
   { "mail"     , POS_STANDING, do_not_here , 1, 0 },
   { "massage"  , POS_RESTING , do_action   , 0, 0 },
+  { "medit"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_MEDIT },
+  { "mlist"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_MLIST },
   { "mute"     , POS_DEAD    , do_wizutil  , LVL_GOD, SCMD_SQUELCH },
   { "murder"   , POS_FIGHTING, do_hit      , 0, SCMD_MURDER },
 
@@ -375,10 +383,12 @@ cpp_extern const struct command_info cmd_info[] = {
   { "nudge"    , POS_RESTING , do_action   , 0, 0 },
   { "nuzzle"   , POS_RESTING , do_action   , 0, 0 },
 
-  { "olc"      , POS_DEAD    , do_olc      , LVL_IMPL, 0 },
   { "order"    , POS_RESTING , do_order    , 1, 0 },
   { "offer"    , POS_STANDING, do_not_here , 1, 0 },
   { "open"     , POS_SITTING , do_gen_door , 0, SCMD_OPEN },
+  { "olc"      , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OLC_SAVEINFO },
+  { "olist"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_OLIST },
+  { "oedit"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_OEDIT },
 
   { "put"      , POS_RESTING , do_put      , 0, 0 },
   { "pat"      , POS_RESTING , do_action   , 0, 0 },
@@ -422,6 +432,8 @@ cpp_extern const struct command_info cmd_info[] = {
   { "rescue"   , POS_FIGHTING, do_rescue   , 1, 0 },
   { "restore"  , POS_DEAD    , do_restore  , LVL_GOD, 0 },
   { "return"   , POS_DEAD    , do_return   , 0, 0 },
+  { "redit"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_REDIT },
+  { "rlist"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_RLIST },
   { "roll"     , POS_RESTING , do_action   , 0, 0 },
   { "roomflags", POS_DEAD    , do_gen_tog  , LVL_IMMORT, SCMD_ROOMFLAGS },
   { "ruffle"   , POS_STANDING, do_action   , 0, 0 },
@@ -429,9 +441,11 @@ cpp_extern const struct command_info cmd_info[] = {
   { "say"      , POS_RESTING , do_say      , 0, 0 },
   { "'"        , POS_RESTING , do_say      , 0, 0 },
   { "save"     , POS_SLEEPING, do_save     , 0, 0 },
+  { "saveall"  , POS_DEAD    , do_saveall  , LVL_BUILDER, 0},
   { "score"    , POS_DEAD    , do_score    , 0, 0 },
   { "scream"   , POS_RESTING , do_action   , 0, 0 },
   { "sell"     , POS_STANDING, do_not_here , 0, 0 },
+  { "sedit"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_SEDIT },
   { "send"     , POS_SLEEPING, do_send     , LVL_GOD, 0 },
   { "set"      , POS_DEAD    , do_set      , LVL_GOD, 0 },
   { "shout"    , POS_RESTING , do_gen_comm , 0, SCMD_SHOUT },
@@ -448,6 +462,7 @@ cpp_extern const struct command_info cmd_info[] = {
   { "skillset" , POS_SLEEPING, do_skillset , LVL_GRGOD, 0 },
   { "sleep"    , POS_SLEEPING, do_sleep    , 0, 0 },
   { "slap"     , POS_RESTING , do_action   , 0, 0 },
+  { "slist"    , POS_SLEEPING, do_oasis    , LVL_BUILDER, SCMD_OASIS_SLIST },
   { "slowns"   , POS_DEAD    , do_gen_tog  , LVL_IMPL, SCMD_SLOWNS },
   { "smile"    , POS_RESTING , do_action   , 0, 0 },
   { "smirk"    , POS_RESTING , do_action   , 0, 0 },
@@ -484,6 +499,7 @@ cpp_extern const struct command_info cmd_info[] = {
   { "taunt"    , POS_RESTING , do_action   , 0, 0 },
   { "taste"    , POS_RESTING , do_eat      , 0, SCMD_TASTE },
   { "teleport" , POS_DEAD    , do_teleport , LVL_GOD, 0 },
+  { "tedit"    , POS_DEAD    , do_tedit    , LVL_GRGOD, 0 },  /* XXX: Oasisify */
   { "thank"    , POS_RESTING , do_action   , 0, 0 },
   { "think"    , POS_RESTING , do_action   , 0, 0 },
   { "thaw"     , POS_DEAD    , do_wizutil  , LVL_FREEZE, SCMD_THAW },
@@ -538,6 +554,8 @@ cpp_extern const struct command_info cmd_info[] = {
   { "yodel"    , POS_RESTING , do_action   , 0, 0 },
 
   { "zreset"   , POS_DEAD    , do_zreset   , LVL_GRGOD, 0 },
+  { "zedit"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_ZEDIT },
+  { "zlist"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_ZLIST },
 
   { "\n", 0, 0, 0, 0 } };	/* this must be last */
 
@@ -1281,9 +1299,34 @@ int perform_dupe_check(struct descriptor_data *d)
 void nanny(struct descriptor_data *d, char *arg)
 {
   int load_result;	/* Overloaded variable */
+  int player_i;
+
+  /* OasisOLC states */
+  struct {
+    int state;
+    void (*func)(struct descriptor_data *, char *);
+  } olc_functions[] = {
+    { CON_OEDIT, oedit_parse },
+    { CON_ZEDIT, zedit_parse },
+    { CON_SEDIT, sedit_parse },
+    { CON_MEDIT, medit_parse },
+    { CON_REDIT, redit_parse },
+    { CON_CEDIT, cedit_parse },
+    { -1, NULL }
+  };
 
   skip_spaces(&arg);
 
+  /*
+   * Quick check for the OLC states.
+   */
+  for (player_i = 0; olc_functions[player_i].state >= 0; player_i++)
+    if (STATE(d) == olc_functions[player_i].state) {
+      (*olc_functions[player_i].func)(d, arg);
+      return;
+    }
+
+  /* Not in OLC. */
   switch (STATE(d)) {
   case CON_GET_NAME:		/* wait for input of name */
     if (d->character == NULL) {
@@ -1372,7 +1415,8 @@ void nanny(struct descriptor_data *d, char *arg)
       STATE(d) = CON_NEWPASSWD;
     } else if (*arg == 'n' || *arg == 'N') {
       write_to_output(d, "Okay, what IS it, then? ");
-      free_char(d->character);
+      free(d->character->player.name);
+      d->character->player.name = NULL;
       STATE(d) = CON_GET_NAME;
     } else
       write_to_output(d, "Please type Yes or No: ");
@@ -1401,7 +1445,7 @@ void nanny(struct descriptor_data *d, char *arg)
 	mudlog(BRF, LVL_GOD, TRUE, "Bad PW: %s [%s]", GET_NAME(d->character), d->host);
 	GET_BAD_PWS(d->character)++;
 	save_char(d->character);
-	if (++(d->bad_pws) >= max_bad_pws) {	/* 3 strikes and you're out. */
+	if (++(d->bad_pws) >= CONFIG_MAX_BAD_PWS) {	/* 3 strikes and you're out. */
 	  write_to_output(d, "Wrong password... disconnecting.\r\n");
 	  STATE(d) = CON_CLOSE;
 	} else {
@@ -1487,7 +1531,7 @@ void nanny(struct descriptor_data *d, char *arg)
       STATE(d) = CON_QSEX;
     } else {
       save_char(d->character);
-      write_to_output(d, "\r\nDone.\r\n%s", MENU);
+      write_to_output(d, "\r\nDone.\r\n%s", CONFIG_MENU);
       STATE(d) = CON_MENU;
     }
     break;
@@ -1532,7 +1576,7 @@ void nanny(struct descriptor_data *d, char *arg)
     break;
 
   case CON_RMOTD:		/* read CR after printing motd   */
-    write_to_output(d, "%s", MENU);
+    write_to_output(d, "%s", CONFIG_MENU);
     STATE(d) = CON_MENU;
     break;
 
@@ -1570,7 +1614,7 @@ void nanny(struct descriptor_data *d, char *arg)
       if (PLR_FLAGGED(d->character, PLR_FROZEN))
 	load_room = r_frozen_start_room;
 
-      send_to_char(d->character, "%s", WELC_MESSG);
+      send_to_char(d->character, "%s", CONFIG_WELC_MESSG);
       d->character->next = character_list;
       character_list = d->character;
       char_to_room(d->character, load_room);
@@ -1586,7 +1630,7 @@ void nanny(struct descriptor_data *d, char *arg)
       STATE(d) = CON_PLAYING;
       if (GET_LEVEL(d->character) == 0) {
 	do_start(d->character);
-	send_to_char(d->character, "%s", START_MESSG);
+	send_to_char(d->character, "%s", CONFIG_START_MESSG);
       }
       look_at_room(d->character, 0);
       if (has_mail(GET_IDNUM(d->character)))
@@ -1604,8 +1648,8 @@ void nanny(struct descriptor_data *d, char *arg)
 	free(d->character->player.description);
 	d->character->player.description = NULL;
       }
-      write_to_output(d, "Enter the new text you'd like others to see when they look at you.\r\n"
-		"Terminate with a '@' on a new line.\r\n");
+      write_to_output(d, "Enter the new text you'd like others to see when they look at you.\r\n");
+      send_editor_help(d);
       d->str = &d->character->player.description;
       d->max_str = EXDSCR_LENGTH;
       STATE(d) = CON_EXDESC;
@@ -1629,7 +1673,7 @@ void nanny(struct descriptor_data *d, char *arg)
       break;
 
     default:
-      write_to_output(d, "\r\nThat's not a menu choice!\r\n%s", MENU);
+      write_to_output(d, "\r\nThat's not a menu choice!\r\n%s", CONFIG_MENU);
       break;
     }
     break;
@@ -1638,7 +1682,7 @@ void nanny(struct descriptor_data *d, char *arg)
   case CON_CHPWD_GETOLD:
     if (strncmp(CRYPT(arg, GET_PASSWD(d->character)), GET_PASSWD(d->character), MAX_PWD_LENGTH)) {
       echo_on(d);
-      write_to_output(d, "\r\nIncorrect password.\r\n%s", MENU);
+      write_to_output(d, "\r\nIncorrect password.\r\n%s", CONFIG_MENU);
       STATE(d) = CON_MENU;
     } else {
       write_to_output(d, "\r\nEnter a new password: ");
@@ -1649,7 +1693,7 @@ void nanny(struct descriptor_data *d, char *arg)
   case CON_DELCNF1:
     echo_on(d);
     if (strncmp(CRYPT(arg, GET_PASSWD(d->character)), GET_PASSWD(d->character), MAX_PWD_LENGTH)) {
-      write_to_output(d, "\r\nIncorrect password.\r\n%s", MENU);
+      write_to_output(d, "\r\nIncorrect password.\r\n%s", CONFIG_MENU);
       STATE(d) = CON_MENU;
     } else {
       write_to_output(d, "\r\nYOU ARE ABOUT TO DELETE THIS CHARACTER PERMANENTLY.\r\n"
@@ -1678,7 +1722,7 @@ void nanny(struct descriptor_data *d, char *arg)
       STATE(d) = CON_CLOSE;
       return;
     } else {
-      write_to_output(d, "\r\nCharacter not deleted.\r\n%s", MENU);
+      write_to_output(d, "\r\nCharacter not deleted.\r\n%s", CONFIG_MENU);
       STATE(d) = CON_MENU;
     }
     break;

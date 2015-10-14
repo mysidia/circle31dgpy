@@ -25,7 +25,6 @@ int extractions_pending = 0;
 
 /* external vars */
 extern struct char_data *combat_list;
-extern const char *MENU;
 
 /* local functions */
 int apply_ac(struct char_data *ch, int eq_pos);
@@ -51,6 +50,38 @@ char *fname(const char *namelist)
   return (holder);
 }
 
+/* Stock isname().  Leave this here even if you put in a newer  *
+ * isname().  Used for OasisOLC.                                */
+int is_name(const char *str, const char *namelist)
+{
+  const char *curname, *curstr;
+
+  if (!*str || !*namelist || !str || !namelist)
+    return (0);
+
+  curname = namelist;
+  for (;;) {
+    for (curstr = str;; curstr++, curname++) {
+      if (!*curstr && !isalpha(*curname))
+        return (1);
+
+      if (!*curname)
+        return (0);
+
+      if (!*curstr || *curname == ' ')
+        break;
+
+      if (LOWER(*curstr) != LOWER(*curname))
+        break;  
+    }
+
+    /* skip to next name */
+   for (; isalpha(*curname); curname++);
+     if (!*curname)
+       return (0);
+    curname++;                  /* first char of new name */
+  }
+}
 
 int isname(const char *str, const char *namelist)
 {
@@ -894,7 +925,7 @@ void extract_char_final(struct char_data *ch)
           STATE(d) = CON_CLOSE;
       }
       STATE(ch->desc) = CON_MENU;
-      write_to_output(ch->desc, "%s", MENU);
+      write_to_output(ch->desc, "%s", CONFIG_MENU);
     }
   }
 
