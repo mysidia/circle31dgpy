@@ -16,11 +16,12 @@
 #include "structs.h"
 #include "interpreter.h"	/* alias_data definition for structs.h */
 
-#define TRUE	1
-#define YES	1
-#define FALSE	0
-#define NO	0
-
+/*
+ * Update:  The following constants and variables are now the default values
+ * for backwards compatibility with the new cedit game configurator.  If you
+ * would not like to use the cedit command, you can change the values in
+ * this file instead.  - Mythran
+ */
 /*
  * Below are several constants which you can change to alter certain aspects
  * of the way CircleMUD acts.  Since this is a .c file, all you have to do
@@ -44,6 +45,21 @@
 
 
 /* GAME PLAY OPTIONS */
+#if !defined(NO)
+#define NO 0
+#endif
+
+#if !defined(YES)
+#define YES 1
+#endif
+
+#if !defined(FALSE)
+#define FALSE 0
+#endif
+
+#if !defined(TRUE)
+#define TRUE  (!FALSE)
+#endif
 
 /*
  * pk_allowed sets the tone of the entire game.  If pk_allowed is set to

@@ -24,10 +24,13 @@
 #include "interpreter.h"
 #include "house.h"
 #include "constants.h"
+#include "oasis.h"
 
 /**************************************************************************
 *  declarations of most of the 'global' variables                         *
 **************************************************************************/
+
+struct config_data config_info; /* Game configuration list.	 */
 
 struct room_data *world = NULL;	/* array of rooms		 */
 room_rnum top_of_world = 0;	/* ref to top element of world	 */
@@ -140,15 +143,15 @@ void boot_the_shops(FILE *shop_f, char *filename, int rec_count);
 int hsort(const void *a, const void *b);
 void prune_crlf(char *txt);
 void destroy_shops(void);
+void free_object_strings(struct obj_data *obj);
+void free_object_strings_proto(struct obj_data *obj);
 
 /* external vars */
-extern int no_specials;
-extern int scheck;
-extern room_vnum mortal_start_room;
-extern room_vnum immort_start_room;
-extern room_vnum frozen_start_room;
 extern struct descriptor_data *descriptor_list;
 extern const char *unused_spellname;	/* spell_parser.c */
+extern int no_specials;
+extern int scheck;
+
 
 /*************************************************************************
 *  routines for booting the system                                       *
@@ -239,7 +242,7 @@ ACMD(do_reboot)
     return;
   }
 
-  send_to_char(ch, "%s", OK);
+  send_to_char(ch, "%s", CONFIG_OK);
 }
 
 
@@ -1016,16 +1019,16 @@ void setup_dir(FILE *fl, int room, int dir)
 /* make sure the start rooms exist & resolve their vnums to rnums */
 void check_start_rooms(void)
 {
-  if ((r_mortal_start_room = real_room(mortal_start_room)) == NOWHERE) {
+  if ((r_mortal_start_room = real_room(CONFIG_MORTAL_START)) == NOWHERE) {
     log("SYSERR:  Mortal start room does not exist.  Change in config.c.");
     exit(1);
   }
-  if ((r_immort_start_room = real_room(immort_start_room)) == NOWHERE) {
+  if ((r_immort_start_room = real_room(CONFIG_IMMORTAL_START)) == NOWHERE) {
     if (!mini_mud)
       log("SYSERR:  Warning: Immort start room does not exist.  Change in config.c.");
     r_immort_start_room = r_mortal_start_room;
   }
-  if ((r_frozen_start_room = real_room(frozen_start_room)) == NOWHERE) {
+  if ((r_frozen_start_room = real_room(CONFIG_FROZEN_START)) == NOWHERE) {
     if (!mini_mud)
       log("SYSERR:  Warning: Frozen start room does not exist.  Change in config.c.");
     r_frozen_start_room = r_mortal_start_room;
@@ -1447,15 +1450,20 @@ char *parse_object(FILE *obj_f, int nr)
     log("SYSERR: Expecting first numeric line of %s, but file ended!", buf2);
     exit(1);
   }
-  if ((retval = sscanf(line, " %d %s %s", t, f1, f2)) != 3) {
-    log("SYSERR: Format error in first numeric line (expecting 3 args, got %d), %s", retval, buf2);
+  if ((retval = sscanf(line, " %d %s %s %d", t, f1, f2, t + 3)) != 4) {
+    if (retval == 3)
+      t[3] = 0;
+    else {
+      log("SYSERR: Format error in first numeric line (expecting 4 args, got %d), %s", retval, buf2);
     exit(1);
+  }
   }
 
   /* Object flags checked in check_object(). */
   GET_OBJ_TYPE(obj_proto + i) = t[0];
   GET_OBJ_EXTRA(obj_proto + i) = asciiflag_conv(f1);
   GET_OBJ_WEAR(obj_proto + i) = asciiflag_conv(f2);
+  GET_OBJ_PERM(obj_proto + i) = t[3];
 
   if (!get_line(obj_f, line)) {
     log("SYSERR: Expecting second numeric line of %s, but file ended!", buf2);
@@ -1474,16 +1482,23 @@ char *parse_object(FILE *obj_f, int nr)
     log("SYSERR: Expecting third numeric line of %s, but file ended!", buf2);
     exit(1);
   }
-  if ((retval = sscanf(line, "%d %d %d", t, t + 1, t + 2)) != 3) {
-    log("SYSERR: Format error in third numeric line (expecting 3 args, got %d), %s", retval, buf2);
+  if ((retval = sscanf(line, "%d %d %d %d", t, t + 1, t + 2, t + 3)) != 4) {
+    if (retval == 3)
+      t[3] = 0;
+    else {
+      log("SYSERR: Format error in third numeric line (expecting 4 args, got %d), %s", retval, buf2);
     exit(1);
   }
+  }
+  
   GET_OBJ_WEIGHT(obj_proto + i) = t[0];
   GET_OBJ_COST(obj_proto + i) = t[1];
   GET_OBJ_RENT(obj_proto + i) = t[2];
+  GET_OBJ_LEVEL(obj_proto + i) = t[3];
 
   /* check to make sure that weight of containers exceeds curr. quantity */
-  if (GET_OBJ_TYPE(obj_proto + i) == ITEM_DRINKCON || GET_OBJ_TYPE(obj_proto + i) == ITEM_FOUNTAIN) {
+  if (GET_OBJ_TYPE(obj_proto + i) == ITEM_DRINKCON ||
+      GET_OBJ_TYPE(obj_proto + i) == ITEM_FOUNTAIN) {
     if (GET_OBJ_WEIGHT(obj_proto + i) < GET_OBJ_VAL(obj_proto + i, 1))
       GET_OBJ_WEIGHT(obj_proto + i) = GET_OBJ_VAL(obj_proto + i, 1) + 5;
   }
@@ -1554,6 +1569,7 @@ void load_zones(FILE *fl, char *zonename)
   static zone_rnum zone = 0;
   int cmd_no, num_of_cmds = 0, line_num = 0, tmp, error;
   char *ptr, buf[READ_SIZE], zname[READ_SIZE], buf2[MAX_STRING_LENGTH];
+  int zone_fix = FALSE;
 
   strlcpy(zname, zonename, sizeof(zname));
 
@@ -1588,12 +1604,31 @@ void load_zones(FILE *fl, char *zonename)
   line_num += get_line(fl, buf);
   if ((ptr = strchr(buf, '~')) != NULL)	/* take off the '~' if it's there */
     *ptr = '\0';
+  Z.builders = strdup(buf);
+  
+  line_num += get_line(fl, buf);
+  if ((ptr = strchr(buf, '~')) != NULL)	/* take off the '~' if it's there */
+    *ptr = '\0';
   Z.name = strdup(buf);
 
   line_num += get_line(fl, buf);
   if (sscanf(buf, " %hd %hd %d %d ", &Z.bot, &Z.top, &Z.lifespan, &Z.reset_mode) != 4) {
-    log("SYSERR: Format error in numeric constant line of %s", zname);
+    /*
+     * This may be due to the fact that the zone has no builder.  So, we just attempt
+     * to fix this by copying the previous 2 last reads into this variable and the
+     * last one.
+     */
+    log("SYSERR: Format error in numeric constant line of %s, attempting to fix.", zname);
+    if (sscanf(Z.name, " %hd %hd %d %d ", &Z.bot, &Z.top, &Z.lifespan, &Z.reset_mode) != 4) {
+      log("SYSERR: Could not fix previous error, aborting game.");
     exit(1);
+    } else {
+      free(Z.name);
+      Z.name = strdup(Z.builders);
+      free(Z.builders);
+      Z.builders = strdup("None.");
+      zone_fix = TRUE;
+    }
   }
   if (Z.bot > Z.top) {
     log("SYSERR: Zone %d bottom (%d) > top (%d).", Z.number, Z.bot, Z.top);
@@ -1603,10 +1638,15 @@ void load_zones(FILE *fl, char *zonename)
   cmd_no = 0;
 
   for (;;) {
+    /* skip reading one line if we fixed above (line is correct already) */
+    if (zone_fix != TRUE) {
     if ((tmp = get_line(fl, buf)) == 0) {
       log("SYSERR: Format error in %s - premature end of file", zname);
       exit(1);
     }
+    } else
+      zone_fix = FALSE;
+    
     line_num += tmp;
     ptr = buf;
     skip_spaces(&ptr);
@@ -2520,31 +2560,10 @@ void free_char(struct char_data *ch)
 /* release memory allocated for an obj struct */
 void free_obj(struct obj_data *obj)
 {
-  int nr;
-
-  if ((nr = GET_OBJ_RNUM(obj)) == NOTHING) {
-    if (obj->name)
-      free(obj->name);
-    if (obj->description)
-      free(obj->description);
-    if (obj->short_description)
-      free(obj->short_description);
-    if (obj->action_description)
-      free(obj->action_description);
-    if (obj->ex_description)
-      free_extra_descriptions(obj->ex_description);
-  } else {
-    if (obj->name && obj->name != obj_proto[nr].name)
-      free(obj->name);
-    if (obj->description && obj->description != obj_proto[nr].description)
-      free(obj->description);
-    if (obj->short_description && obj->short_description != obj_proto[nr].short_description)
-      free(obj->short_description);
-    if (obj->action_description && obj->action_description != obj_proto[nr].action_description)
-      free(obj->action_description);
-    if (obj->ex_description && obj->ex_description != obj_proto[nr].ex_description)
-      free_extra_descriptions(obj->ex_description);
-  }
+  if (GET_OBJ_RNUM(obj) == NOWHERE)
+    free_object_strings(obj);
+  else
+    free_object_strings_proto(obj);
 
   free(obj);
 }
@@ -3025,3 +3044,349 @@ int check_bitvector_names(bitvector_t bits, size_t namecount, const char *whatam
   return (error);
 }
 
+/* External variables from config.c */
+extern int pk_allowed;
+extern int pt_allowed;
+extern int level_can_shout;
+extern int holler_move_cost;
+extern int tunnel_size;
+extern int max_exp_gain;
+extern int max_exp_loss;
+extern int max_npc_corpse_time;
+extern int max_pc_corpse_time;
+extern int idle_void;
+extern int idle_rent_time;
+extern int idle_max_level;
+extern int dts_are_dumps;
+extern int load_into_inventory;
+extern int track_through_doors;
+extern int immort_level_ok;
+extern int free_rent;
+extern int max_obj_save;
+extern int min_rent_cost;
+extern int auto_save;
+extern int autosave_time;
+extern int crash_file_timeout;
+extern int rent_file_timeout;
+extern room_vnum mortal_start_room;
+extern room_vnum immort_start_room;
+extern room_vnum frozen_start_room;
+extern room_vnum donation_room_1;
+extern room_vnum donation_room_2;
+extern room_vnum donation_room_3;
+extern ush_int DFLT_PORT;
+extern const char *DFLT_IP;
+extern const char *DFLT_DIR;
+extern const char *LOGNAME;
+extern int max_playing;
+extern int max_filesize;
+extern int max_bad_pws;
+extern int siteok_everyone;
+extern int nameserver_is_slow;
+extern const char *MENU;
+extern const char *WELC_MESSG;
+extern const char *START_MESSG;
+extern int use_autowiz;
+extern int min_wizlist_lev;
+extern const char *OK;
+extern const char *NOPERSON;
+extern const char *NOEFFECT;
+
+void load_default_config( void )
+{
+  /****************************************************************************/
+  /** This function is called only once, at boot-time.                       **/
+  /** - We assume config_info is empty                          -- Welcor    **/
+  /****************************************************************************/
+  /****************************************************************************/
+  /** Game play options.                                                     **/
+  /****************************************************************************/
+  CONFIG_PK_ALLOWED 	        = pk_allowed;
+  CONFIG_PT_ALLOWED             = pt_allowed;
+  CONFIG_LEVEL_CAN_SHOUT 	= level_can_shout;
+  CONFIG_HOLLER_MOVE_COST 	= holler_move_cost;
+  CONFIG_TUNNEL_SIZE 	        = tunnel_size;
+  CONFIG_MAX_EXP_GAIN	        = max_exp_gain;
+  CONFIG_MAX_EXP_LOSS 	        = max_exp_loss;
+  CONFIG_MAX_NPC_CORPSE_TIME    = max_npc_corpse_time;
+  CONFIG_MAX_PC_CORPSE_TIME	= max_pc_corpse_time;
+  CONFIG_IDLE_VOID		= idle_void;
+  CONFIG_IDLE_RENT_TIME	        = idle_rent_time;
+  CONFIG_IDLE_MAX_LEVEL	        = idle_max_level;
+  CONFIG_DTS_ARE_DUMPS	        = dts_are_dumps;
+  CONFIG_LOAD_INVENTORY         = load_into_inventory;
+  CONFIG_OK			= strdup(OK);
+  CONFIG_NOPERSON		= strdup(NOPERSON);
+  CONFIG_NOEFFECT		= strdup(NOEFFECT);
+  CONFIG_TRACK_T_DOORS          = track_through_doors;
+  CONFIG_IMMORT_LEVEL_OK	= immort_level_ok;
+  
+  /****************************************************************************/
+  /** Rent / crashsave options.                                              **/
+  /****************************************************************************/
+  CONFIG_FREE_RENT              = free_rent;
+  CONFIG_MAX_OBJ_SAVE           = max_obj_save;
+  CONFIG_MIN_RENT_COST	        = min_rent_cost;
+  CONFIG_AUTO_SAVE		= auto_save;
+  CONFIG_AUTOSAVE_TIME	        = autosave_time;
+  CONFIG_CRASH_TIMEOUT          = crash_file_timeout;
+  CONFIG_RENT_TIMEOUT	        = rent_file_timeout;
+  
+  /****************************************************************************/
+  /** Room numbers.                                                          **/
+  /****************************************************************************/
+  CONFIG_MORTAL_START           = mortal_start_room;
+  CONFIG_IMMORTAL_START         = immort_start_room;
+  CONFIG_FROZEN_START           = frozen_start_room;
+  CONFIG_DON_ROOM_1             = donation_room_1;
+  CONFIG_DON_ROOM_2             = donation_room_2;
+  CONFIG_DON_ROOM_3             = donation_room_3;
+  
+  /****************************************************************************/
+  /** Game operation options.                                                **/
+  /****************************************************************************/
+  CONFIG_DFLT_PORT              = DFLT_PORT;
+  
+  if (DFLT_IP)
+    CONFIG_DFLT_IP              = strdup(DFLT_IP);
+  else
+    CONFIG_DFLT_IP              = NULL;
+  
+  CONFIG_DFLT_DIR               = strdup(DFLT_DIR);
+  
+  if (LOGNAME)
+    CONFIG_LOGNAME              = strdup(LOGNAME);
+  else
+    CONFIG_LOGNAME              = NULL;
+  
+  CONFIG_MAX_PLAYING            = max_playing;
+  CONFIG_MAX_FILESIZE           = max_filesize;
+  CONFIG_MAX_BAD_PWS            = max_bad_pws;
+  CONFIG_SITEOK_ALL             = siteok_everyone;
+  CONFIG_NS_IS_SLOW             = nameserver_is_slow;
+  CONFIG_MENU                   = strdup(MENU);
+  CONFIG_WELC_MESSG             = strdup(WELC_MESSG);
+  CONFIG_START_MESSG            = strdup(START_MESSG);
+  
+  /****************************************************************************/
+  /** Autowiz options.                                                       **/
+  /****************************************************************************/
+  CONFIG_USE_AUTOWIZ            = use_autowiz;
+  CONFIG_MIN_WIZLIST_LEV        = min_wizlist_lev;
+}
+
+void load_config( void )
+{
+  FILE *fl;
+  char line[MAX_STRING_LENGTH];
+  char tag[MAX_INPUT_LENGTH];
+  int  num;
+  char buf[MAX_INPUT_LENGTH];
+
+  load_default_config();
+  
+  snprintf(buf, sizeof(buf), "%s/%s", DFLT_DIR, CONFIG_FILE);
+  if ( !(fl = fopen(CONFIG_FILE, "r")) && !(fl = fopen(buf, "r")) ) {
+    snprintf(buf, sizeof(buf), "Game Config File: %s", CONFIG_FILE);
+    perror(buf);
+    return;
+  }
+  
+  /****************************************************************************/
+  /** Load the game configuration file.                                      **/
+  /****************************************************************************/
+  while (get_line(fl, line)) {
+    split_argument(line, tag);
+    num = atoi(line);
+    
+    switch (LOWER(*tag)) {
+      case 'a':
+        if (!str_cmp(tag, "auto_save"))
+          CONFIG_AUTO_SAVE = num;
+        else if (!str_cmp(tag, "autosave_time"))
+          CONFIG_AUTOSAVE_TIME = num;
+        break;
+        
+      case 'c':
+        if (!str_cmp(tag, "crash_file_timeout"))
+          CONFIG_CRASH_TIMEOUT = num;
+        break;
+        
+      case 'd':
+        if (!str_cmp(tag, "dts_are_dumps"))
+          CONFIG_DTS_ARE_DUMPS = num;
+        else if (!str_cmp(tag, "donation_room_1"))
+          if (num == -1)
+            CONFIG_DON_ROOM_1 = NOWHERE;
+          else
+            CONFIG_DON_ROOM_1 = num;
+        else if (!str_cmp(tag, "donation_room_2"))
+          if (num == -1)
+            CONFIG_DON_ROOM_2 = NOWHERE;
+          else
+            CONFIG_DON_ROOM_2 = num;
+        else if (!str_cmp(tag, "donation_room_3"))
+          if (num == -1)
+            CONFIG_DON_ROOM_3 = NOWHERE;
+          else
+            CONFIG_DON_ROOM_3 = num;
+        else if (!str_cmp(tag, "dflt_ip")) {
+          if (CONFIG_DFLT_IP)
+            free(CONFIG_DFLT_IP);
+          if (line && *line)
+            CONFIG_DFLT_IP = strdup(line);
+          else
+            CONFIG_DFLT_IP = NULL;
+        } else if (!str_cmp(tag, "dflt_port"))
+          CONFIG_DFLT_PORT = num;
+        break;
+        
+      case 'f':
+        if (!str_cmp(tag, "free_rent"))
+          CONFIG_FREE_RENT = num;
+        else if (!str_cmp(tag, "frozen_start_room"))
+          CONFIG_FROZEN_START = num;
+        break;
+        
+      case 'h':
+        if (!str_cmp(tag, "holler_move_cost"))
+          CONFIG_HOLLER_MOVE_COST = num;
+        break;
+        
+      case 'i':
+        if (!str_cmp(tag, "idle_void"))
+          CONFIG_IDLE_VOID = num;
+        else if (!str_cmp(tag, "idle_rent_time"))
+          CONFIG_IDLE_RENT_TIME = num;
+        else if (!str_cmp(tag, "idle_max_level"))
+          CONFIG_IDLE_MAX_LEVEL = num;
+        else if (!str_cmp(tag, "immort_level_ok"))
+          CONFIG_IMMORT_LEVEL_OK = num;
+        else if (!str_cmp(tag, "immort_start_room"))
+          CONFIG_IMMORTAL_START = num;
+        break;
+        
+      case 'l':
+        if (!str_cmp(tag, "level_can_shout"))
+          CONFIG_LEVEL_CAN_SHOUT = num;
+        else if (!str_cmp(tag, "load_into_inventory"))
+          CONFIG_LOAD_INVENTORY = num;
+        else if (!str_cmp(tag, "logname")) {
+          if (CONFIG_LOGNAME)
+            free(CONFIG_LOGNAME);
+          if (line && *line)
+            CONFIG_LOGNAME = strdup(line);
+          else
+            CONFIG_LOGNAME = NULL;
+        }
+        break;
+        
+      case 'm':
+        if (!str_cmp(tag, "max_bad_pws"))
+          CONFIG_MAX_BAD_PWS = num;
+        else if (!str_cmp(tag, "max_exp_gain"))
+          CONFIG_MAX_EXP_GAIN = num;
+        else if (!str_cmp(tag, "max_exp_loss"))
+          CONFIG_MAX_EXP_LOSS = num;
+        else if (!str_cmp(tag, "max_filesize"))
+          CONFIG_MAX_FILESIZE = num;
+        else if (!str_cmp(tag, "max_npc_corpse_time"))
+          CONFIG_MAX_NPC_CORPSE_TIME = num;
+        else if (!str_cmp(tag, "max_obj_save"))
+          CONFIG_MAX_OBJ_SAVE = num;
+        else if (!str_cmp(tag, "max_pc_corpse_time"))
+          CONFIG_MAX_PC_CORPSE_TIME = num;
+        else if (!str_cmp(tag, "max_playing"))
+          CONFIG_MAX_PLAYING = num;
+        else if (!str_cmp(tag, "menu")) {
+          if (CONFIG_MENU)
+            free(CONFIG_MENU);
+          strncpy(buf, "Reading menu in load_config()", sizeof(buf));
+          CONFIG_MENU = fread_string(fl, buf);
+        } else if (!str_cmp(tag, "min_rent_cost"))
+          CONFIG_MIN_RENT_COST = num;
+        else if (!str_cmp(tag, "min_wizlist_lev"))
+          CONFIG_MIN_WIZLIST_LEV = num;
+        else if (!str_cmp(tag, "mortal_start_room"))
+          CONFIG_MORTAL_START = num;
+        break;
+        
+      case 'n':
+        if (!str_cmp(tag, "nameserver_is_slow"))
+          CONFIG_NS_IS_SLOW = num;
+        else if (!str_cmp(tag, "noperson")) {
+          char tmp[READ_SIZE];
+          if (CONFIG_NOPERSON)
+            free(CONFIG_NOPERSON);
+          snprintf(tmp, sizeof(tmp), "%s\r\n", line);
+          CONFIG_NOPERSON = strdup(tmp);
+        } else if (!str_cmp(tag, "noeffect")) {
+          char tmp[READ_SIZE];
+          if (CONFIG_NOEFFECT)
+            free(CONFIG_NOEFFECT);
+          snprintf(tmp, sizeof(tmp), "%s\r\n", line);
+          CONFIG_NOEFFECT = strdup(tmp);
+        }
+        break;
+      
+      case 'o':
+        if (!str_cmp(tag, "ok")) {
+          char tmp[READ_SIZE];
+          if (CONFIG_OK)
+            free(CONFIG_OK);
+          snprintf(tmp, sizeof(tmp), "%s\r\n", line);
+          CONFIG_OK = strdup(tmp);
+        }
+        break;
+                  
+      case 'p':
+        if (!str_cmp(tag, "pk_allowed"))
+          CONFIG_PK_ALLOWED = num;
+        else if (!str_cmp(tag, "pt_allowed"))
+          CONFIG_PT_ALLOWED = num;
+        break;
+        
+      case 'r':
+        if (!str_cmp(tag, "rent_file_timeout"))
+          CONFIG_RENT_TIMEOUT = num;
+        break;
+        
+      case 's':
+        if (!str_cmp(tag, "siteok_everyone"))
+          CONFIG_SITEOK_ALL = num;
+        else if (!str_cmp(tag, "start_messg")) {
+          strncpy(buf, "Reading start message in load_config()", sizeof(buf));
+          if (CONFIG_START_MESSG)
+            free(CONFIG_START_MESSG);
+          CONFIG_START_MESSG = fread_string(fl, buf);
+        }
+        break;
+        
+      case 't':
+        if (!str_cmp(tag, "tunnel_size"))
+          CONFIG_TUNNEL_SIZE = num;
+        else if (!str_cmp(tag, "track_through_doors"))
+          CONFIG_TRACK_T_DOORS = num;
+        break;
+        
+      case 'u':
+        if (!str_cmp(tag, "use_autowiz"))
+          CONFIG_USE_AUTOWIZ = num;
+        break;
+        
+      case 'w':
+        if (!str_cmp(tag, "welc_messg")) {
+          strncpy(buf, "Reading welcome message in load_config()", sizeof(buf));
+          if (CONFIG_WELC_MESSG)
+            free(CONFIG_WELC_MESSG);
+          CONFIG_WELC_MESSG = fread_string(fl, buf);
+        }
+        break;
+        
+      default:
+        break;
+    }
+  }
+  
+  fclose(fl);
+}

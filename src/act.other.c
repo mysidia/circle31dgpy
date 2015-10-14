@@ -27,12 +27,6 @@
 /* extern variables */
 extern struct spell_info_type spell_info[];
 extern const char *class_abbrevs[];
-extern int free_rent;
-extern int pt_allowed;
-extern int max_filesize;
-extern int nameserver_is_slow;
-extern int auto_save;
-extern int track_through_doors;
 
 /* extern procedures */
 void list_skills(struct char_data *ch);
@@ -90,7 +84,7 @@ ACMD(do_quit)
      *  situation.
      */
 
-    if (free_rent)
+    if (CONFIG_FREE_RENT)
       Crash_rentsave(ch, 0);
 
     /* If someone is quitting in their house, let them load back here. */
@@ -117,7 +111,7 @@ ACMD(do_save)
      * that guest immortals aren't trustworthy. If you've disabled guest
      * immortal advances from mortality, you may want < instead of <=.
      */
-    if (auto_save && GET_LEVEL(ch) <= LVL_IMMORT) {
+    if (CONFIG_AUTO_SAVE && GET_LEVEL(ch) <= LVL_IMMORT) {
       send_to_char(ch, "Saving aliases.\r\n");
       write_aliases(ch);
       return;
@@ -227,7 +221,7 @@ ACMD(do_steal)
   if (GET_POS(vict) < POS_SLEEPING)
     percent = -1;		/* ALWAYS SUCCESS, unless heavy object. */
 
-  if (!pt_allowed && !IS_NPC(vict))
+  if (!CONFIG_PT_ALLOWED && !IS_NPC(vict))
     pcsteal = 1;
 
   if (!AWAKE(vict))	/* Easier to steal from sleeping people. */
@@ -442,7 +436,7 @@ ACMD(do_group)
   }
 
   if (!(vict = get_char_vis(ch, buf, NULL, FIND_CHAR_ROOM)))
-    send_to_char(ch, "%s", NOPERSON);
+    send_to_char(ch, "%s", CONFIG_NOPERSON);
   else if ((vict->master != ch) && (vict != ch))
     act("$N must follow you to enter your group.", FALSE, ch, 0, vict, TO_CHAR);
   else {
@@ -774,7 +768,7 @@ ACMD(do_display)
     }
   }
 
-  send_to_char(ch, "%s", OK);
+  send_to_char(ch, "%s", CONFIG_OK);
 }
 
 
@@ -822,7 +816,7 @@ ACMD(do_gen_write)
     perror("SYSERR: Can't stat() file");
     return;
   }
-  if (fbuf.st_size >= max_filesize) {
+  if (fbuf.st_size >= CONFIG_MAX_FILESIZE) {
     send_to_char(ch, "Sorry, the file is full right now.. try again later.\r\n");
     return;
   }
@@ -846,7 +840,7 @@ ACMD(do_gen_write)
 
 ACMD(do_gen_tog)
 {
-  long /* bitvector_t */ result;
+  long result;
 
   const char *tog_messages[][2] = {
     {"You are now safe from summoning by other players.\r\n",
@@ -933,13 +927,13 @@ ACMD(do_gen_tog)
     result = PRF_TOG_CHK(ch, PRF_HOLYLIGHT);
     break;
   case SCMD_SLOWNS:
-    result = (nameserver_is_slow = !nameserver_is_slow);
+    result = (CONFIG_NS_IS_SLOW = !CONFIG_NS_IS_SLOW);
     break;
   case SCMD_AUTOEXIT:
     result = PRF_TOG_CHK(ch, PRF_AUTOEXIT);
     break;
   case SCMD_TRACK:
-    result = (track_through_doors = !track_through_doors);
+    result = (CONFIG_TRACK_T_DOORS = !CONFIG_TRACK_T_DOORS);
     break;
   default:
     log("SYSERR: Unknown subcmd %d in do_gen_toggle.", subcmd);

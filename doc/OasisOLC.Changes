@@ -1,0 +1,46 @@
+        --==** OasisOLC Version 2.0.4 For CircleMUD Version 3.1 **==-
+
+[Current Additions]
+* RLIST command.  Lists all rooms in a given zone.
+* (D) command in redit.  Allows the builder to delete the room from memory.
+* Added a builders list for zones.
+
+[Current Modifications]
+* Maintenance Release:
+  Upped version number to 2.0.4
+  Added empty builder field to lib/world/zon/*.zon
+  Moved Oasis docfiles into doc/
+  Fixed missing/skewed menu items in cedit
+  Text editor cedit items now clean up properly on exit
+  Repaired cosmetic bug in munged circlemud_version string
+  Kludged around a chicken and egg problem in load_config()
+  Repaired a bunch of potential format string exploits
+  Added missing can_edit check to zedit
+  Fixed free_strings() crash for rooms with multiple ex_description
+* Alterations by Welcor:
+  Upped version number to 2.0.3 (I think the new additions warrant it)
+  oasis-ified tedit (a bit) and made d->olc a struct oasis_olc_data * instead of void *
+  All olc files: Dependency on global buffers removed.
+  All olc files: ->in_room -> IN_ROOM() change.
+  All files (olc files + comm.c): update to circle 3.1
+  All olc files: removed some buffers, changed to write_to_output and send_to_char
+  db.c, db.h: Changed config_info to a static variable (to save some malloc/free'ing)
+  structs.h: Embedded substructs in config_data struct instead of using pointers (same reason)
+  utils.h: Added macros to configure options.
+  All olc files: Removed some outdated comments.
+  oasis_copy.c: Fixed serious buffer size error in do_dig and cleaned the code up.
+  All olc files: Added support for unsigned IDXTYPE by removing checks for <0 and ==-1
+  comm.c: Added support for auto prompt. (hey, the bit was there...)
+* BugFix
+  zedit.
+    Modified the message to the user from "Zone create successfully\r\n" to
+    "Zone created successfully.\r\n".
+* BugFix (Not really)
+  save
+    Added a check to make sure the zone is in the save_list before calling
+    remove_from_save_list.  This was a problem because everytime a builder
+    saved his/her zone, but it wasn't in the save list, an error was sent
+    to the log file, erraneous.
+
+[Old Additions and Modifications]
+* None to date.
