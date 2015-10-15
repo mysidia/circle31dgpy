@@ -20,13 +20,15 @@
 #include "shop.h"
 #include "screen.h"
 #include "constants.h"
+#include "dg_scripts.h"
 
 /******************************************************************************/
 /** External Variables                                                       **/
 /******************************************************************************/
 extern struct shop_data *shop_index;
 extern int top_shop;
-
+extern struct index_data **trig_index;
+extern int top_of_trigt;
 
 /******************************************************************************/
 /** Internal Functions                                                       **/
@@ -35,6 +37,7 @@ void list_rooms(struct char_data *ch  , zone_rnum rnum, room_vnum vmin, room_vnu
 void list_mobiles(struct char_data *ch, zone_rnum rnum, mob_vnum vmin , mob_vnum vmax );
 void list_objects(struct char_data *ch, zone_rnum rnum, obj_vnum vmin , obj_vnum vmax );
 void list_shops(struct char_data *ch  , zone_rnum rnum, shop_vnum vmin, shop_vnum vmax);
+void list_triggers(struct char_data *ch, zone_rnum rnum, trig_vnum vmin, trig_vnum vmax);
 void list_zones(struct char_data *ch);
 void print_zone(struct char_data *ch, zone_vnum vnum);
 
@@ -42,24 +45,26 @@ void print_zone(struct char_data *ch, zone_vnum vnum);
 /******************************************************************************/
 /** Ingame Commands                                                          **/
 /******************************************************************************/
-ACMD(do_oasis_rlist)
+ACMD(do_oasis_list) 
 {
-  zone_rnum rzone;
+  zone_rnum rzone = NOWHERE;
   room_rnum vmin = NOWHERE;
   room_rnum vmax = NOWHERE;
   char smin[MAX_INPUT_LENGTH];
   char smax[MAX_INPUT_LENGTH];
   
-  /****************************************************************************/
-  /** Split the arguments into smin and smax.                                **/
-  /****************************************************************************/
   two_arguments(argument, smin, smax);
   
+  if (subcmd == SCMD_OASIS_ZLIST) { /* special case */
+    if (smin && *smin && is_number(smin)) 
+      print_zone(ch, atoi(smin));
+    else
+      list_zones(ch);  
+      return;
+    }
+    
   if (!*smin || *smin == '.') {
     rzone = world[IN_ROOM(ch)].zone;
-    
-    list_rooms(ch, rzone, NOWHERE, NOWHERE);
-
   } else if (!*smax) {
     rzone = real_zone(atoi(smin));
     
@@ -67,150 +72,29 @@ ACMD(do_oasis_rlist)
       send_to_char(ch, "Sorry, there's no zone with that number\r\n");
       return;
     }
-    
-    list_rooms(ch, rzone, NOWHERE, NOWHERE);
-    
   } else {
-    /****************************************************************************/
     /** Listing by min vnum / max vnum.  Retrieve the numeric values.          **/
-    /****************************************************************************/
     vmin = atoi(smin);
     vmax = atoi(smax);
     
-    list_rooms(ch, NOWHERE, vmin, vmax);
-  }
-}
-
-ACMD(do_oasis_mlist)
-{
-  zone_rnum rzone;
-  room_rnum vmin = NOWHERE;
-  room_rnum vmax = NOWHERE;
-  char smin[MAX_INPUT_LENGTH];
-  char smax[MAX_INPUT_LENGTH];
-  
-  /****************************************************************************/
-  /** Split the arguments into smin and smax.                                **/
-  /****************************************************************************/
-  two_arguments(argument, smin, smax);
-  
-  if (!*smin || *smin == '.') {
-    rzone = world[IN_ROOM(ch)].zone;
-    
-    list_mobiles(ch, rzone, NOWHERE, NOWHERE);
-
-  } else if (!*smax) {
-    rzone = real_zone(atoi(smin));
-    
-    if (rzone == NOWHERE) {
-      send_to_char(ch, "Sorry, there's no zone with that number\r\n");
+    if (vmin > vmax) {
+      send_to_char(ch, "List from %d to %d - Aren't we funny today!\r\n", vmin, vmax);
       return;
     }
-    
-    list_mobiles(ch, rzone, NOWHERE, NOWHERE);
-    
-  } else {
-    /****************************************************************************/
-    /** Listing by min vnum / max vnum.  Retrieve the numeric values.          **/
-    /****************************************************************************/
-    vmin = atoi(smin);
-    vmax = atoi(smax);
-    
-    list_mobiles(ch, NOWHERE, vmin, vmax);
-  }
-}
-
-ACMD(do_oasis_olist)
-{
-  zone_rnum rzone;
-  room_rnum vmin = NOWHERE;
-  room_rnum vmax = NOWHERE;
-  char smin[MAX_INPUT_LENGTH];
-  char smax[MAX_INPUT_LENGTH];
-  
-  /****************************************************************************/
-  /** Split the arguments into smin and smax.                                **/
-  /****************************************************************************/
-  two_arguments(argument, smin, smax);
-  
-  if (!*smin || *smin == '.') {
-    rzone = world[IN_ROOM(ch)].zone;
-    
-    list_objects(ch, rzone, NOWHERE, NOWHERE);
-
-  } else if (!*smax) {
-    rzone = real_zone(atoi(smin));
-    
-    if (rzone == NOWHERE) {
-      send_to_char(ch, "Sorry, there's no zone with that number\r\n");
-      return;
     }
     
-    list_objects(ch, rzone, NOWHERE, NOWHERE);
-    
-  } else {
-    /****************************************************************************/
-    /** Listing by min vnum / max vnum.  Retrieve the numeric values.          **/
-    /****************************************************************************/
-    vmin = atoi(smin);
-    vmax = atoi(smax);
-    
-    list_objects(ch, NOWHERE, vmin, vmax);
+  switch (subcmd) {
+    case SCMD_OASIS_RLIST: list_rooms(ch, rzone, vmin, vmax); break;
+    case SCMD_OASIS_OLIST: list_objects(ch, rzone, vmin, vmax); break;
+    case SCMD_OASIS_MLIST: list_mobiles(ch, rzone, vmin, vmax); break;
+    case SCMD_OASIS_TLIST: list_triggers(ch, rzone, vmin, vmax); break;
+    case SCMD_OASIS_SLIST: list_shops(ch, rzone, vmin, vmax); break;
+    default: 
+      send_to_char(ch, "You can't list that!\r\n");
+      mudlog(BRF, LVL_IMMORT, TRUE, 
+        "SYSERR: do_oasis_list: Unknown list option: %d", subcmd);
   }
 }
-
-ACMD(do_oasis_slist)
-{
-  zone_rnum rzone;
-  room_rnum vmin = NOWHERE;
-  room_rnum vmax = NOWHERE;
-  char smin[MAX_INPUT_LENGTH];
-  char smax[MAX_INPUT_LENGTH];
-  
-  /****************************************************************************/
-  /** Split the arguments into smin and smax.                                **/
-  /****************************************************************************/
-  two_arguments(argument, smin, smax);
-  
-  if (!*smin || *smin == '.') {
-    rzone = world[IN_ROOM(ch)].zone;
-    
-    list_shops(ch, rzone, NOWHERE, NOWHERE);
-
-  } else if (!*smax) {
-    rzone = real_zone(atoi(smin));
-    
-    /**************************************************************************/
-    /** Make sure the zone exists.                                           **/
-    /**************************************************************************/
-    if (rzone == NOWHERE) {
-      send_to_char(ch, "Sorry, there's no zone with that number\r\n");
-      return;
-    }
-    
-    list_shops(ch, rzone, NOWHERE, NOWHERE);
-    
-  } else {
-    /****************************************************************************/
-    /** Listing by min vnum / max vnum.  Retrieve the numeric values.          **/
-    /****************************************************************************/
-    vmin = atoi(smin);
-    vmax = atoi(smax);
-    
-    list_shops(ch, NOWHERE, vmin, vmax);
-  }
-}
-
-
-ACMD(do_oasis_zlist)
-{
-  skip_spaces(&argument);
-  if (argument && *argument && is_number(argument)) 
-    print_zone(ch, atoi(argument));
-  else
-    list_zones(ch);  
-}
-
 
 /******************************************************************************/
 /** Helper Functions                                                         **/
@@ -596,4 +480,53 @@ void print_zone(struct char_data *ch, zone_vnum vnum)
     QGRN, QCYN, size_rooms,
     QGRN, QCYN, size_objects,
     QGRN, QCYN, size_mobiles, QNRM);
+}
+
+/* List code by Ronald Evers - dlanor@xs4all.nl */
+void list_triggers(struct char_data *ch, zone_rnum rnum, trig_vnum vmin, trig_vnum vmax)
+{
+  int i, bottom, top, counter = 0;
+  char trgtypes[256];
+
+  /** Expect a minimum / maximum number if the rnum for the zone is NOWHERE. **/
+  if (rnum != NOWHERE) {
+    bottom = zone_table[rnum].bot;
+    top    = zone_table[rnum].top;
+  } else {
+    bottom = vmin;
+    top    = vmax;
+  }
+
+
+  /** Store the header for the room listing. **/
+  send_to_char (ch,
+  "Index VNum    Trigger Name                        Type\r\n"
+  "----- ------- -------------------------------------------------------\r\n");
+
+
+  /** Loop through the world and find each room. **/
+  for (i = 0; i < top_of_trigt; i++) {
+    /** Check to see if this room is one of the ones needed to be listed.    **/
+    if ((trig_index[i]->vnum >= bottom) && (trig_index[i]->vnum <= top)) {
+      counter++;
+
+      send_to_char(ch, "%4d) [%s%5d%s] %s%-35.35s ",
+        counter, QGRN, trig_index[i]->vnum, QNRM, QCYN, trig_index[i]->proto->name);
+
+      if (trig_index[i]->proto->attach_type == OBJ_TRIGGER) {
+        sprintbit(GET_TRIG_TYPE(trig_index[i]->proto), otrig_types, trgtypes, sizeof(trgtypes));
+        send_to_char(ch, "obj %s%s%s\r\n", QYEL, trgtypes, QNRM);
+      } else if (trig_index[i]->proto->attach_type==WLD_TRIGGER) {
+        sprintbit(GET_TRIG_TYPE(trig_index[i]->proto), wtrig_types, trgtypes, sizeof(trgtypes));
+        send_to_char(ch, "wld %s%s%s\r\n", QYEL, trgtypes, QNRM);
+      } else {
+        sprintbit(GET_TRIG_TYPE(trig_index[i]->proto), trig_types, trgtypes, sizeof(trgtypes));
+        send_to_char(ch, "mob %s%s%s\r\n", QYEL, trgtypes, QNRM);
+      }
+
+    }
+  }
+
+  if (counter == 0)
+    send_to_char(ch, "No triggers found for zone #%d\r\n", zone_table[rnum].number);
 }

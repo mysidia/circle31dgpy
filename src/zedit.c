@@ -15,6 +15,7 @@
 #include "genolc.h"
 #include "genzon.h"
 #include "oasis.h"
+#include "dg_scripts.h"
 
 /*-------------------------------------------------------------------*/
 
@@ -25,7 +26,7 @@ extern struct char_data *mob_proto;
 extern struct index_data *obj_index;
 extern struct obj_data *obj_proto;
 extern struct descriptor_data *descriptor_list;
-
+extern struct index_data **trig_index;
 /*-------------------------------------------------------------------*/
 
 /*
@@ -33,6 +34,7 @@ extern struct descriptor_data *descriptor_list;
  */
 #define MYCMD		(OLC_ZONE(d)->cmd[subcmd])
 #define OLC_CMD(d)	(OLC_ZONE(d)->cmd[OLC_VAL(d)])
+#define MAX_DUPLICATES 100
 
 /* Prototypes. */
 int start_change_command(struct descriptor_data *d, int pos);
@@ -257,6 +259,8 @@ void zedit_setup(struct descriptor_data *d, int room_num)
     switch (ZCMD(OLC_ZNUM(d), subcmd).command) {
     case 'M':
     case 'O':
+    case 'T':
+    case 'V':
       cmd_room = ZCMD(OLC_ZNUM(d), subcmd).arg3;
       break;
     case 'D':
@@ -305,6 +309,7 @@ void zedit_new_zone(struct char_data *ch, zone_vnum vzone_num, room_vnum bottom,
       case CON_MEDIT:
       case CON_SEDIT:
       case CON_OEDIT:
+      case CON_TRIGEDIT:
         OLC_ZNUM(dsc) += (OLC_ZNUM(dsc) >= result);
         break;
       default:
@@ -535,6 +540,24 @@ void zedit_disp_menu(struct descriptor_data *d)
 	      MYCMD.arg3 ? ((MYCMD.arg3 == 1) ? "closed" : "locked") : "open"
 	      );
       break;
+    case 'T':
+      write_to_output(d, "%sAttach trigger %s%s%s [%s%d%s] to %s",
+        MYCMD.if_flag ? " then " : "",
+        cyn, trig_index[MYCMD.arg2]->proto->name, yel, 
+        cyn, trig_index[MYCMD.arg2]->vnum, yel,
+        ((MYCMD.arg1 == MOB_TRIGGER) ? "mobile" :
+          ((MYCMD.arg1 == OBJ_TRIGGER) ? "object" :
+            ((MYCMD.arg1 == WLD_TRIGGER)? "room" : "????"))));
+      break;
+    case 'V':
+      write_to_output(d, "%sAssign global %s:%d to %s = %s",
+        MYCMD.if_flag ? " then " : "",
+        MYCMD.sarg1, MYCMD.arg2,
+        ((MYCMD.arg1 == MOB_TRIGGER) ? "mobile" :
+          ((MYCMD.arg1 == OBJ_TRIGGER) ? "object" :
+            ((MYCMD.arg1 == WLD_TRIGGER)? "room" : "????"))),
+        MYCMD.sarg2);
+      break;
     default:
       write_to_output(d, "<Unknown Command>");
       break;
@@ -567,13 +590,16 @@ void zedit_disp_comtype(struct descriptor_data *d)
   get_char_colors(d->character);
   clear_screen(d);
   write_to_output(d,
+	"\r\n"
 	"%sM%s) Load Mobile to room             %sO%s) Load Object to room\r\n"
 	"%sE%s) Equip mobile with object        %sG%s) Give an object to a mobile\r\n"
 	"%sP%s) Put object in another object    %sD%s) Open/Close/Lock a Door\r\n"
 	"%sR%s) Remove an object from the room\r\n"
+        "%sT%s) Assign a trigger                %sV%s) Set a global variable\r\n"
+	"\r\n"
 	"What sort of command will this be? : ",
 	grn, nrm, grn, nrm, grn, nrm, grn, nrm, grn, nrm,
-	grn, nrm, grn, nrm
+	grn, nrm, grn, nrm, grn, nrm, grn, nrm
 	);
   OLC_MODE(d) = ZEDIT_COMMAND_TYPE;
 }
@@ -586,6 +612,8 @@ void zedit_disp_comtype(struct descriptor_data *d)
  */
 void zedit_disp_arg1(struct descriptor_data *d)
 {
+  write_to_output(d, "\r\n");
+
   switch (OLC_CMD(d).command) {
   case 'M':
     write_to_output(d, "Input mob's vnum : ");
@@ -605,6 +633,11 @@ void zedit_disp_arg1(struct descriptor_data *d)
      */
     OLC_CMD(d).arg1 = real_room(OLC_NUM(d));
     zedit_disp_arg2(d);
+    break;
+  case 'T':
+  case 'V':
+    write_to_output(d, "Input trigger type (0:mob, 1:obj, 2:room) :");
+    OLC_MODE(d) = ZEDIT_ARG1;
     break;
   default:
     /*
@@ -627,6 +660,8 @@ void zedit_disp_arg2(struct descriptor_data *d)
 {
   int i;
 
+  write_to_output(d, "\r\n");
+  
   switch (OLC_CMD(d).command) {
   case 'M':
   case 'O':
@@ -643,6 +678,12 @@ void zedit_disp_arg2(struct descriptor_data *d)
     break;
   case 'R':
     write_to_output(d, "Input object's vnum : ");
+    break;
+  case 'T':
+    write_to_output(d, "Enter the trigger VNum : ");
+    break;
+  case 'V':
+    write_to_output(d, "Global's context (0 for none) : ");
     break;
   default:
     /*
@@ -666,6 +707,8 @@ void zedit_disp_arg3(struct descriptor_data *d)
 {
   int i = 0;
 
+  write_to_output(d, "\r\n");
+
   switch (OLC_CMD(d).command) {
   case 'E':
     while (*equipment_types[i] != '\n') {
@@ -688,6 +731,8 @@ void zedit_disp_arg3(struct descriptor_data *d)
 		"2)  Door locked\r\n"
 		"Enter state of the door : ");
     break;
+  case 'V':
+  case 'T':
   case 'M':
   case 'O':
   case 'R':
@@ -891,12 +936,17 @@ void zedit_parse(struct descriptor_data *d, char *arg)
      * quiz.
      */
     OLC_CMD(d).command = toupper(*arg);
-    if (!OLC_CMD(d).command || (strchr("MOPEDGR", OLC_CMD(d).command) == NULL)) {
+    if (!OLC_CMD(d).command || (strchr("MOPEDGRTV", OLC_CMD(d).command) == NULL)) {
       write_to_output(d, "Invalid choice, try again : ");
     } else {
       if (OLC_VAL(d)) {	/* If there was a previous command. */
+        if (OLC_CMD(d).command == 'T' || OLC_CMD(d).command == 'V') {
+          OLC_CMD(d).if_flag = 1;
+          zedit_disp_arg1(d);
+        } else {
 	write_to_output(d, "Is this command dependent on the success of the previous one? (y/n)\r\n");
 	OLC_MODE(d) = ZEDIT_IF_FLAG;
+        }
       } else {	/* 'if-flag' not appropriate. */
 	OLC_CMD(d).if_flag = 0;
 	zedit_disp_arg1(d);
@@ -936,7 +986,7 @@ void zedit_parse(struct descriptor_data *d, char *arg)
     }
     switch (OLC_CMD(d).command) {
     case 'M':
-      if ((pos = real_mobile(atoi(arg))) >= 0) {
+      if ((pos = real_mobile(atoi(arg))) != NOBODY) {
 	OLC_CMD(d).arg1 = pos;
 	zedit_disp_arg2(d);
       } else
@@ -946,11 +996,20 @@ void zedit_parse(struct descriptor_data *d, char *arg)
     case 'P':
     case 'E':
     case 'G':
-      if ((pos = real_object(atoi(arg))) >= 0) {
+      if ((pos = real_object(atoi(arg))) != NOTHING) {
 	OLC_CMD(d).arg1 = pos;
 	zedit_disp_arg2(d);
       } else
 	write_to_output(d, "That object does not exist, try again : ");
+      break;
+    case 'T':
+    case 'V':
+      if (atoi(arg)<MOB_TRIGGER || atoi(arg)>WLD_TRIGGER)
+        write_to_output(d, "Invalid input.");
+      else {
+       OLC_CMD(d).arg1 = atoi(arg);
+        zedit_disp_arg2(d);
+      }
       break;
     case 'D':
     case 'R':
@@ -977,18 +1036,32 @@ void zedit_parse(struct descriptor_data *d, char *arg)
     switch (OLC_CMD(d).command) {
     case 'M':
     case 'O':
-      OLC_CMD(d).arg2 = atoi(arg);
+      OLC_CMD(d).arg2 = MIN(MAX_DUPLICATES, atoi(arg));
       OLC_CMD(d).arg3 = real_room(OLC_NUM(d));
       zedit_disp_menu(d);
       break;
     case 'G':
-      OLC_CMD(d).arg2 = atoi(arg);
+      OLC_CMD(d).arg2 = MIN(MAX_DUPLICATES, atoi(arg));
       zedit_disp_menu(d);
       break;
     case 'P':
     case 'E':
-      OLC_CMD(d).arg2 = atoi(arg);
+      OLC_CMD(d).arg2 = MIN(MAX_DUPLICATES, atoi(arg));
       zedit_disp_arg3(d);
+      break;
+    case 'V':
+      OLC_CMD(d).arg2 = atoi(arg); /* context */
+      OLC_CMD(d).arg3 = real_room(OLC_NUM(d));
+      write_to_output(d, "Enter the global name : ");
+      OLC_MODE(d) = ZEDIT_SARG1;
+      break;
+    case 'T':
+      if (real_trigger(atoi(arg)) != NOTHING) {
+        OLC_CMD(d).arg2 = real_trigger(atoi(arg)); /* trigger */
+        OLC_CMD(d).arg3 = real_room(OLC_NUM(d));   
+        zedit_disp_menu(d);
+      } else
+        write_to_output(d, "That trigger does not exist, try again : ");
       break;
     case 'D':
       pos = atoi(arg);
@@ -1003,7 +1076,7 @@ void zedit_parse(struct descriptor_data *d, char *arg)
       }
       break;
     case 'R':
-      if ((pos = real_object(atoi(arg))) >= 0) {
+      if ((pos = real_object(atoi(arg))) != NOTHING) {
 	OLC_CMD(d).arg2 = pos;
 	zedit_disp_menu(d);
       } else
@@ -1046,7 +1119,7 @@ void zedit_parse(struct descriptor_data *d, char *arg)
       }
       break;
     case 'P':
-      if ((pos = real_object(atoi(arg))) >= 0) {
+      if ((pos = real_object(atoi(arg))) != NOTHING) {
 	OLC_CMD(d).arg3 = pos;
 	zedit_disp_menu(d);
       } else
@@ -1065,6 +1138,8 @@ void zedit_parse(struct descriptor_data *d, char *arg)
     case 'O':
     case 'G':
     case 'R':
+    case 'T':
+    case 'V':
     default:
       /*
        * We should never get here, but just in case...
@@ -1074,6 +1149,25 @@ void zedit_parse(struct descriptor_data *d, char *arg)
       write_to_output(d, "Oops...\r\n");
       break;
     }
+    break;
+
+/*-------------------------------------------------------------------*/
+  case ZEDIT_SARG1:
+    if (strlen(arg)) {
+      OLC_CMD(d).sarg1 = strdup(arg);
+      OLC_MODE(d) = ZEDIT_SARG2;
+      write_to_output(d, "Enter the global value : ");
+    } else
+      write_to_output(d, "Must have some name to assign : ");
+    break;
+
+/*-------------------------------------------------------------------*/
+  case ZEDIT_SARG2:
+    if (strlen(arg)) {
+      OLC_CMD(d).sarg2 = strdup(arg);
+      zedit_disp_menu(d);
+    } else
+      write_to_output(d, "Must have some value to set it to :");
     break;
 
 /*-------------------------------------------------------------------*/

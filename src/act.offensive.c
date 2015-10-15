@@ -21,7 +21,7 @@
 #include "spells.h"
 
 /* extern functions */
-void raw_kill(struct char_data *ch);
+void raw_kill(struct char_data *ch, struct char_data * killer);
 void check_killer(struct char_data *ch, struct char_data *vict);
 int compute_armor_class(struct char_data *ch);
 
@@ -146,7 +146,7 @@ ACMD(do_kill)
       act("You chop $M to pieces!  Ah!  The blood!", FALSE, ch, 0, vict, TO_CHAR);
       act("$N chops you to pieces!", FALSE, vict, 0, ch, TO_CHAR);
       act("$n brutally slays $N!", FALSE, ch, 0, vict, TO_NOTVICT);
-      raw_kill(vict);
+      raw_kill(vict, ch);
     }
   }
 }

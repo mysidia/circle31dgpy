@@ -21,6 +21,7 @@
 #include "spells.h"
 #include "house.h"
 #include "constants.h"
+#include "dg_scripts.h"
 
 /* external functions */
 int special(struct char_data *ch, int cmd, char *arg);
@@ -87,7 +88,7 @@ int has_boat(struct char_data *ch)
 int do_simple_move(struct char_data *ch, int dir, int need_specials_check)
 {
   char throwaway[MAX_INPUT_LENGTH] = ""; /* Functions assume writable. */
-  room_rnum was_in;
+  room_rnum was_in = IN_ROOM(ch);
   int need_movement;
 
   /*
@@ -96,6 +97,12 @@ int do_simple_move(struct char_data *ch, int dir, int need_specials_check)
    */
   if (need_specials_check && special(ch, dir + 1, throwaway))
     return (0);
+
+  /* blocked by a leave trigger ? */
+  if (!leave_mtrigger(ch, dir) || IN_ROOM(ch) != was_in) /* prevent teleport crashes */
+    return 0;
+  if (!leave_wtrigger(&world[IN_ROOM(ch)], ch, dir) || IN_ROOM(ch) != was_in) /* prevent teleport crashes */
+    return 0;
 
   /* charmed? */
   if (AFF_FLAGGED(ch, AFF_CHARM) && ch->master && IN_ROOM(ch) == IN_ROOM(ch->master)) {
@@ -160,6 +167,14 @@ int do_simple_move(struct char_data *ch, int dir, int need_specials_check)
   char_from_room(ch);
   char_to_room(ch, world[was_in].dir_option[dir]->to_room);
 
+  /* move them first, then move them back if they aren't allowed to go. */
+  /* see if an entry trigger disallows the move */
+  if (!entry_mtrigger(ch) || !enter_wtrigger(&world[IN_ROOM(ch)], ch, dir)) {
+    char_from_room(ch);
+    char_to_room(ch, was_in);
+    return 0;
+  }
+
   if (!AFF_FLAGGED(ch, AFF_SNEAK))
     act("$n has arrived.", TRUE, ch, 0, 0, TO_ROOM);
 
@@ -172,6 +187,14 @@ int do_simple_move(struct char_data *ch, int dir, int need_specials_check)
     extract_char(ch);
     return (0);
   }
+
+  entry_memory_mtrigger(ch);
+  if (!greet_mtrigger(ch, dir)) {
+    char_from_room(ch);
+    char_to_room(ch, was_in);
+    look_at_room(ch, 0);
+  } else greet_memory_mtrigger(ch);
+
   return (1);
 }
 
@@ -327,6 +350,12 @@ void do_doorcmd(struct char_data *ch, struct obj_data *obj, int door, int scmd)
   size_t len;
   room_rnum other_room = NOWHERE;
   struct room_direction_data *back = NULL;
+
+  if (!door_mtrigger(ch, scmd, door))
+    return;
+
+  if (!door_wtrigger(ch, scmd, door))
+    return;
 
   len = snprintf(buf, sizeof(buf), "$n %ss ", cmd_door[scmd]);
   if (!obj && ((other_room = EXIT(ch, door)->to_room) != NOWHERE))

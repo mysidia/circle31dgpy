@@ -11,6 +11,7 @@
 #include "db.h"
 #include "genolc.h"
 #include "genzon.h"
+#include "dg_scripts.h"
 
 extern zone_rnum top_of_zone_table;
 extern struct room_data *world;
@@ -19,6 +20,8 @@ extern struct char_data *mob_proto;
 extern struct obj_data *obj_proto;
 extern struct index_data *mob_index;
 extern struct index_data *obj_index;
+extern struct index_data **trig_index;
+extern struct trig_data *trigger_list;
 
 /* real zone of room/mobile/object/shop given */
 zone_rnum real_zone_by_thing(room_vnum vznum)
@@ -159,6 +162,18 @@ zone_rnum create_new_zone(zone_vnum vzone_num, room_vnum bottom, room_vnum top, 
   fclose(fp);
 
   /*
+   * Create the trigger file.
+   */
+  snprintf(buf, sizeof(buf), "%s/%d.trg", TRG_PREFIX, vzone_num);
+  if (!(fp = fopen(buf, "w"))) {
+    mudlog(BRF, LVL_IMPL, TRUE, "SYSERR: OLC: Can't write new trigger file");
+    *error = "Could not write trigger file.\r\n";
+    return NOWHERE;
+  }
+  fprintf(fp, "$~\n");
+  fclose(fp);
+
+  /*
    * Update index files.
    */
   create_world_index(vzone_num, "zon");
@@ -166,6 +181,7 @@ zone_rnum create_new_zone(zone_vnum vzone_num, room_vnum bottom, room_vnum top, 
   create_world_index(vzone_num, "mob");
   create_world_index(vzone_num, "obj");
   create_world_index(vzone_num, "shp");
+  create_world_index(vzone_num, "trg");
 
   /*
    * Make a new zone in memory. This was the source of all the zedit new
@@ -242,6 +258,9 @@ void create_world_index(int znum, const char *type)
   case 's':
     prefix = SHP_PREFIX;
     break;
+  case 't':
+    prefix = TRG_PREFIX;
+    break;
   default:
     /*
      * Caller messed up  
@@ -306,6 +325,8 @@ void remove_room_zone_commands(zone_rnum zone, room_rnum room_num)
     switch (zone_table[zone].cmd[subcmd].command) {
     case 'M':
     case 'O':
+    case 'T':
+    case 'V':
       cmd_room = zone_table[zone].cmd[subcmd].arg3;
       break;
     case 'D':
@@ -381,6 +402,8 @@ int save_zone(zone_rnum zone_num)
 	 * P (Put)     Obj-Vnum   Wld-Max   Target-Obj-Vnum
 	 * D (Door)    Room-Vnum  Door-Dir  Door-State
 	 * R (Remove)  Room-Vnum  Obj-Vnum  Unused
+         * T (Trigger) Trig-type  Trig-Vnum Room-Vnum
+         * V (var)     Trig-type  Context   Room-Vnum Varname Value
 	 * -------------------------------------------------
 	 */
 
@@ -428,6 +451,17 @@ int save_zone(zone_rnum zone_num)
       comment = obj_proto[ZCMD(zone_num, subcmd).arg2].short_description;
       arg3 = -1;
       break;
+    case 'T':
+      arg1 = ZCMD(zone_num, subcmd).arg1; /* trigger type */
+      arg2 = trig_index[ZCMD(zone_num, subcmd).arg2]->vnum; /* trigger vnum */
+      arg3 = world[ZCMD(zone_num, subcmd).arg3].number; /* room num */
+      comment = GET_TRIG_NAME(trig_index[real_trigger(arg2)]->proto); 
+      break;
+    case 'V':
+      arg1 = ZCMD(zone_num, subcmd).arg1; /* trigger type */
+      arg2 = ZCMD(zone_num, subcmd).arg2; /* context */
+      arg3 = world[ZCMD(zone_num, subcmd).arg3].number;
+      break;
     case '*':
       /*
        * Invalid commands are replaced with '*' - Ignore them.
@@ -437,8 +471,13 @@ int save_zone(zone_rnum zone_num)
       mudlog(BRF, LVL_BUILDER, TRUE, "SYSERR: OLC: z_save_to_disk(): Unknown cmd '%c' - NOT saving", ZCMD(zone_num, subcmd).command);
       continue;
     }
+    if (ZCMD(zone_num, subcmd).command != 'V')
     fprintf(zfile, "%c %d %d %d %d \t(%s)\n",
 		ZCMD(zone_num, subcmd).command, ZCMD(zone_num, subcmd).if_flag, arg1, arg2, arg3, comment);
+    else
+      fprintf(zfile, "%c %d %d %d %d %s %s\n",
+              ZCMD(zone_num, subcmd).command, ZCMD(zone_num, subcmd).if_flag, arg1, arg2, arg3, 
+              ZCMD(zone_num, subcmd).sarg1, ZCMD(zone_num, subcmd).sarg2);
   }
   fputs("S\n$\n", zfile);
   fclose(zfile);

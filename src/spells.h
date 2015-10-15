@@ -119,6 +119,11 @@
 #define SPELL_ACID_BREATH            205
 #define SPELL_LIGHTNING_BREATH       206
 
+                                           
+#define SPELL_DG_AFFECT              298  /* to make an affect induced by dg_affect 
+                                           * look correct on 'stat' we need to define
+                                           * it with a 'spellname'.
+                                           */
 #define TOP_SPELL_DEFINE	     299
 /* NEW NPC/OBJECT SPELLS can be inserted here up to 299 */
 

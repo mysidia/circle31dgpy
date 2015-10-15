@@ -248,6 +248,7 @@ const char *connected_types[] = {
   "Mobile edit",
   "Shop edit",
   "Text edit",
+  "Trigger edit",
   "\n"
 };
 
@@ -784,6 +785,77 @@ const char *month_name[] = {
   "Month of the Long Shadows",
   "Month of the Ancient Darkness",
   "Month of the Great Evil"
+};
+
+/* mob trigger types */
+const char *trig_types[] = {
+  "Global", 
+  "Random",
+  "Command",
+  "Speech",
+  "Act",
+  "Death",
+  "Greet",
+  "Greet-All",
+  "Entry",
+  "Receive",
+  "Fight",
+  "HitPrcnt",
+  "Bribe",
+  "Load",
+  "Memory",
+  "Cast",
+  "Leave",
+  "Door",
+  "\n"
+};
+
+
+/* obj trigger types */
+const char *otrig_types[] = {
+  "Global",
+  "Random",
+  "Command",
+  "UNUSED",
+  "UNUSED",
+  "Timer",
+  "Get",
+  "Drop",
+  "Give",
+  "Wear",
+  "UNUSED",
+  "Remove",
+  "UNUSED",
+  "Load",
+  "UNUSED",
+  "UNUSED",
+  "Leave",
+  "UNUSED",
+  "\n"
+};
+
+
+/* wld trigger types */
+const char *wtrig_types[] = {
+  "Global",
+  "Random",
+  "Command",
+  "Speech",
+  "UNUSED",
+  "Zone Reset",
+  "Enter",
+  "Drop",
+  "UNUSED",
+  "UNUSED",
+  "UNUSED",
+  "UNUSED",
+  "UNUSED",
+  "UNUSED",
+  "UNUSED",
+  "Cast",
+  "Leave",
+  "Door",
+  "\n"
 };
 
 #if defined(CONFIG_OASIS_MPROG)

@@ -21,6 +21,7 @@
 #include "genzon.h"
 #include "oasis.h"
 #include "improved-edit.h"
+#include "dg_olc.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -41,6 +42,7 @@ extern struct board_info_type board_info[];
 extern struct descriptor_data *descriptor_list;
 
 /*------------------------------------------------------------------------*/
+extern zone_rnum real_zone_by_thing(room_vnum vznum);
 
 /*
  * Handy macros.
@@ -220,6 +222,11 @@ void oedit_setup_new(struct descriptor_data *d)
   OLC_OBJ(d)->short_description = strdup("an unfinished object");
   GET_OBJ_WEAR(OLC_OBJ(d)) = ITEM_WEAR_TAKE;
   OLC_VAL(d) = 0;
+  OLC_ITEM_TYPE(d) = OBJ_TRIGGER;
+
+  SCRIPT(OLC_OBJ(d)) = NULL;
+  OLC_OBJ(d)->proto_script = OLC_SCRIPT(d) = NULL;
+
   oedit_disp_menu(d);
 }
 
@@ -240,6 +247,15 @@ void oedit_setup_existing(struct descriptor_data *d, int real_num)
    */
   OLC_OBJ(d) = obj;
   OLC_VAL(d) = 0;
+  OLC_ITEM_TYPE(d) = OBJ_TRIGGER;
+  dg_olc_script_copy(d);
+  /*
+   * The edited obj must not have a script.
+   * It will be assigned to the updated obj later, after editing.
+   */
+  SCRIPT(obj) = NULL;
+  OLC_OBJ(d)->proto_script = NULL;
+
   oedit_disp_menu(d);
 }
 
@@ -250,6 +266,7 @@ void oedit_save_internally(struct descriptor_data *d)
   int i;
   obj_rnum robj_num;
   struct descriptor_data *dsc;
+  struct obj_data *obj;
 
   i = (real_object(OLC_NUM(d)) == NOTHING);
 
@@ -257,6 +274,28 @@ void oedit_save_internally(struct descriptor_data *d)
     log("oedit_save_internally: add_object failed.");
     return;
   }
+
+  /* Update triggers : */
+  /* Free old proto list  */
+  if (obj_proto[robj_num].proto_script &&
+      obj_proto[robj_num].proto_script != OLC_SCRIPT(d)) 
+    free_proto_script(&obj_proto[robj_num], OBJ_TRIGGER);   
+  /* this will handle new instances of the object: */
+  obj_proto[robj_num].proto_script = OLC_SCRIPT(d);
+
+  /* this takes care of the objects currently in-game */
+  for (obj = object_list; obj; obj = obj->next) {
+    if (obj->item_number != robj_num)
+      continue;
+    /* remove any old scripts */
+    if (SCRIPT(obj)) 
+      extract_script(obj, OBJ_TRIGGER);
+
+    free_proto_script(obj, OBJ_TRIGGER);
+    copy_proto_script(&obj_proto[robj_num], obj, OBJ_TRIGGER);
+    assign_triggers(obj, OBJ_TRIGGER);
+  }
+  /* end trigger update */
 
   if (!i)	/* If it's not a new object, don't renumber. */
     return;
@@ -727,6 +766,7 @@ void oedit_disp_menu(struct descriptor_data *d)
 	  "%sE%s) Extra descriptions menu\r\n"
           "%sM%s) Min Level   : %s%d\r\n"
           "%sP%s) Perm Affects: %s%s\r\n"
+          "%sS%s) Script      : %s%s\r\n"
 	  "%sQ%s) Quit\r\n"
 	  "Enter choice : ",
 
@@ -742,6 +782,7 @@ void oedit_disp_menu(struct descriptor_data *d)
 	  grn, nrm, grn, nrm,
           grn, nrm, cyn, GET_OBJ_LEVEL(obj),
           grn, nrm, cyn, buf2,
+          grn, nrm, cyn, OLC_SCRIPT(d) ? "Set." : "Not Set.",
           grn, nrm
   );
   OLC_MODE(d) = OEDIT_MAIN_MENU;
@@ -879,6 +920,11 @@ void oedit_parse(struct descriptor_data *d, char *arg)
       oedit_disp_perm_menu(d);
       OLC_MODE(d) = OEDIT_PERM;
       break;
+    case 's':
+    case 'S':
+      OLC_SCRIPT_EDIT_MODE(d) = SCRIPT_MAIN_MENU;
+      dg_script_menu(d);
+      return;
     default:
       oedit_disp_menu(d);
       break;
@@ -886,6 +932,10 @@ void oedit_parse(struct descriptor_data *d, char *arg)
     return;			/*
 				 * end of OEDIT_MAIN_MENU 
 				 */
+
+  case OLC_SCRIPT_EDIT:
+    if (dg_script_edit_parse(d, arg)) return;
+    break;
 
   case OEDIT_EDIT_NAMELIST:
     if (!genolc_checkstring(d, arg))

@@ -22,6 +22,7 @@
 #include "genobj.h"
 #include "oasis.h"
 #include "screen.h"
+#include "dg_olc.h"
 
 const char *nrm, *grn, *cyn, *yel;
 
@@ -53,6 +54,7 @@ struct olc_scmd_info_t {
   { "mobile",	CON_MEDIT },
   { "shop",	CON_SEDIT },
   { "config",   CON_CEDIT },
+  { "trigger",  CON_TRIGEDIT },
   { "\n",	-1	  }
 };
 
@@ -69,7 +71,7 @@ void free_config(struct config_data *data);
 void clear_screen(struct descriptor_data *d)
 {
   if (PRF_FLAGGED(d->character, PRF_CLS))
-    send_to_char(d->character, ".[H.[J");
+    write_to_output(d, "[H[J");
 }
 
 /* -------------------------------------------------------------------------- */
@@ -129,23 +131,16 @@ ACMD(do_oasis)
       break;
       
     case SCMD_OASIS_RLIST:
-      do_oasis_rlist(ch, argument, cmd, subcmd);
-      break;
-      
     case SCMD_OASIS_MLIST:
-      do_oasis_mlist(ch, argument, cmd, subcmd);
-      break;
-      
     case SCMD_OASIS_OLIST:
-      do_oasis_olist(ch, argument, cmd, subcmd);
-      break;
-    
     case SCMD_OASIS_SLIST:
-      do_oasis_slist(ch, argument, cmd, subcmd);
+    case SCMD_OASIS_ZLIST:
+    case SCMD_OASIS_TLIST:
+      do_oasis_list(ch, argument, cmd, subcmd);
       break;
     
-    case SCMD_OASIS_ZLIST:
-      do_oasis_zlist(ch, argument, cmd, subcmd);
+    case SCMD_OASIS_TRIGEDIT:
+      do_oasis_trigedit(ch, argument, cmd, subcmd);
       break;
       
     default:
@@ -252,9 +247,24 @@ void cleanup_olc(struct descriptor_data *d, byte cleanup_type)
   }
 
   /* free storage if allocated (for tedit) */
-  if (OLC_STORAGE(d)) 
+   /* Triggers */
+   /* 
+    * this is the command list - it's been copied to disk already,
+    * so just free it -- Welcor
+    */
+   if (OLC_STORAGE(d)) { 
     free(OLC_STORAGE(d));
-
+     OLC_STORAGE(d) = NULL;
+   }
+   /*
+    * Free this one regardless. If we've left olc, we've either made
+    * a fresh copy of it in the trig index, or we lost connection.
+    * Either way, we need to get rid of this.
+    */
+   if (OLC_TRIG(d)) {
+     free_trigger(OLC_TRIG(d));
+     OLC_TRIG(d) = NULL;
+   }
   /*
    * Restore descriptor playing status.
    */
@@ -335,11 +345,29 @@ void free_config(struct config_data *data)
 /******************************************************************************/
 int can_edit_zone(struct char_data *ch, zone_rnum rnum)
 {
-  if (GET_LEVEL(ch) >= LVL_IMPL)
+  /* no access if called with bad arguments */
+  if (!ch->desc || IS_NPC(ch) || rnum == NOWHERE)
+    return FALSE;
+
+  /* always access if ch is high enough level */
+  if (GET_LEVEL(ch) >= LVL_GRGOD)
     return (TRUE);
   
+  /* always access if a player have helped build the zone in the first place */
   if (is_name(GET_NAME(ch), zone_table[rnum].builders))
     return (FALSE);
   
-  return (TRUE);
+  /* no access if you haven't been assigned a zone */
+  if (GET_OLC_ZONE(ch) == NOWHERE)
+    return FALSE;
+
+  /* no access if you're not at least LVL_BUILDER */
+  if (GET_LEVEL(ch) < LVL_BUILDER)
+    return FALSE;
+
+  /* always access if you're assigned to this zone */
+  if (real_zone(GET_OLC_ZONE(ch)) == rnum)
+    return TRUE;
+
+  return (FALSE);
 }

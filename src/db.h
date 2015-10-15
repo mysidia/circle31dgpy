@@ -15,6 +15,7 @@
 #define DB_BOOT_ZON	3
 #define DB_BOOT_SHP	4
 #define DB_BOOT_HLP	5
+#define DB_BOOT_TRG	6
 
 #if defined(CIRCLE_MACINTOSH)
 #define LIB_WORLD	":world:"
@@ -24,6 +25,7 @@
 #define LIB_ETC		":etc:"
 #define LIB_PLRTEXT	":plrtext:"
 #define LIB_PLROBJS	":plrobjs:"
+#define LIB_PLRVARS	":plrvars:"
 #define LIB_PLRALIAS	":plralias:"
 #define LIB_HOUSE	":house:"
 #define SLASH		":"
@@ -35,6 +37,7 @@
 #define LIB_ETC		"etc/"
 #define LIB_PLRTEXT	"plrtext/"
 #define LIB_PLROBJS	"plrobjs/"
+#define LIB_PLRVARS	"plrvars/"
 #define LIB_PLRALIAS	"plralias/"
 #define LIB_HOUSE	"house/"
 #define SLASH		"/"
@@ -45,6 +48,7 @@
 #define SUF_OBJS	"objs"
 #define SUF_TEXT	"text"
 #define SUF_ALIAS	"alias"
+#define SUF_MEM	        "mem"
 
 #if defined(CIRCLE_AMIGA)
 #define FASTBOOT_FILE   "/.fastboot"    /* autorun: boot without sleep  */
@@ -69,6 +73,7 @@
 #define ZON_PREFIX	LIB_WORLD"zon"SLASH	/* zon defs & command tables */
 #define SHP_PREFIX	LIB_WORLD"shp"SLASH	/* shop definitions	*/
 #define HLP_PREFIX	LIB_TEXT"help"SLASH	/* for HELP <keyword>	*/
+#define TRG_PREFIX	LIB_WORLD"trg"SLASH	/* trigger files	*/
 
 #define CREDITS_FILE	LIB_TEXT"credits" /* for the 'credits' command	*/
 #define NEWS_FILE	LIB_TEXT"news"	/* for the 'news' command	*/
@@ -76,6 +81,7 @@
 #define IMOTD_FILE	LIB_TEXT"imotd"	/* messages of the day / immort	*/
 #define GREETINGS_FILE	LIB_TEXT"greetings"	/* The opening screen.	*/
 #define HELP_PAGE_FILE	LIB_TEXT_HELP"screen"	/* for HELP <CR>	*/
+#define CONTEXT_HELP_FILE LIB_TEXT"contexthelp"	/* context help for olc	*/
 #define INFO_FILE	LIB_TEXT"info"		/* for INFO		*/
 #define WIZLIST_FILE	LIB_TEXT"wizlist"	/* for WIZLIST		*/
 #define IMMLIST_FILE	LIB_TEXT"immlist"	/* for IMMLIST		*/
@@ -146,6 +152,8 @@ struct reset_com {
    int	arg2;		/* Arguments to the command             */
    int	arg3;		/*                                      */
    int line;		/* line number this command appears on  */
+   char *sarg1;		/* string argument                      */
+   char *sarg2;		/* string argument                      */
 
    /* 
 	*  Commands:              *
@@ -156,6 +164,8 @@ struct reset_com {
 	*  'G': Obj to char       *
 	*  'E': Obj to char equip *
 	*  'D': Set state of door *
+	*  'T': Trigger command   *
+	*  'V': Assign a variable *
    */
 };
 

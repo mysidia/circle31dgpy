@@ -269,6 +269,7 @@
 #define CON_SEDIT	 22	/* OLC mode - shop editor		*/
 #define CON_TEDIT	 23	/* OLC mode - text editor		*/
 #define CON_CEDIT	 24	/* OLC mode - conf editor		*/
+#define CON_TRIGEDIT     25	/* OLC mode - trigger edit              */
 
 /* Character equipment positions: used as index for char_data.equipment[] */
 /* NOTE: Don't confuse these constants with the ITEM_ bitvectors
@@ -519,6 +520,10 @@
 #define MAX_OBJ_AFFECT		6 /* Used in obj_file_elem *DO*NOT*CHANGE* */
 #define MAX_NOTE_LENGTH		1000	/* arbitrary */
 
+/* define the largest set of commands for a trigger */
+#define MAX_CMD_LENGTH          16384 /* 16k should be plenty and then some */
+
+
 /*
  * A MAX_PWD_LENGTH of 10 will cause BSD-derived systems with MD5 passwords
  * and GNU libc 2 passwords to be truncated.  On BSD this will enable anyone
@@ -556,6 +561,7 @@ typedef IDXTYPE obj_vnum;
 typedef IDXTYPE mob_vnum;
 typedef IDXTYPE zone_vnum;
 typedef IDXTYPE shop_vnum;
+typedef IDXTYPE trig_vnum;
 
 /* Various real (array-reference) number types. */
 typedef IDXTYPE room_rnum;
@@ -563,6 +569,7 @@ typedef IDXTYPE obj_rnum;
 typedef IDXTYPE mob_rnum;
 typedef IDXTYPE zone_rnum;
 typedef IDXTYPE shop_rnum;
+typedef IDXTYPE trig_rnum;
 
 
 /*
@@ -585,10 +592,10 @@ struct extra_descr_data {
 
 /* object-related structures ******************************************/
 
-
+#define NUM_OBJ_VAL_POSITIONS 4
 /* object flags; used in obj_data */
 struct obj_flag_data {
-   int	value[4];	/* Values of the item (see list)    */
+   int	value[NUM_OBJ_VAL_POSITIONS];	/* Values of the item (see list)    */
    byte type_flag;	/* Type of item			    */
    int level;		/* Minimum level of object.		*/
    int /*bitvector_t*/	wear_flags;	/* Where you can wear it	    */
@@ -628,6 +635,10 @@ struct obj_data {
    struct obj_data *in_obj;       /* In what object NULL when none    */
    struct obj_data *contains;     /* Contains objects                 */
 
+   long id;                       /* used by DG triggers - unique id  */
+   struct trig_proto_list *proto_script; /* list of default triggers  */
+   struct script_data *script;    /* script info for the object       */
+
    struct obj_data *next_content; /* For 'contains' lists             */
    struct obj_data *next;         /* For the object list              */
 };
@@ -642,7 +653,7 @@ struct obj_file_elem {
 #if USE_AUTOEQ
    sh_int location;
 #endif
-   int	value[4];
+   int	value[NUM_OBJ_VAL_POSITIONS];
    int /*bitvector_t*/	extra_flags;
    int	weight;
    int	timer;
@@ -698,6 +709,9 @@ struct room_data {
 
    byte light;                  /* Number of lightsources in room     */
    SPECIAL(*func);
+
+   struct trig_proto_list *proto_script; /* list of default triggers  */
+   struct script_data *script;  /* script info for the room           */
 
    struct obj_data *contents;   /* List of items in room              */
    struct char_data *people;    /* List of NPC / PC in room           */
@@ -933,6 +947,11 @@ struct char_data {
    struct obj_data *carrying;            /* Head of list                  */
    struct descriptor_data *desc;         /* NULL for mobiles              */
 
+   long id;                            /* used by DG triggers - unique id */
+   struct trig_proto_list *proto_script; /* list of default triggers      */
+   struct script_data *script;         /* script info for the object      */
+   struct script_memory *memory;       /* for mob memory triggers         */
+
    struct char_data *next_in_room;     /* For room->people - list         */
    struct char_data *next;             /* For either monster or ppl-list  */
    struct char_data *next_fighting;    /* For fighting list               */
@@ -1108,6 +1127,15 @@ struct index_data {
    mob_vnum	vnum;	/* virtual number of this mob/obj		*/
    int		number;	/* number of existing units of this mob/obj	*/
    SPECIAL(*func);
+
+   char *farg;         /* string argument for special function      */
+   struct trig_data *proto;     /* for triggers... the trigger */
+};
+
+/* linked list for mob/object prototype trigger lists */
+struct trig_proto_list {
+  int vnum;                             /* vnum of the trigger   */
+  struct trig_proto_list *next;         /* next trigger          */
 };
 
 struct guild_info_type {

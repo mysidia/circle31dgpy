@@ -61,6 +61,8 @@
 #include "house.h"
 #include "oasis.h"
 #include "genolc.h"
+#include "dg_scripts.h"
+#include "dg_event.h"
 
 #ifdef HAVE_ARPA_TELNET_H
 #include <arpa/telnet.h>
@@ -97,12 +99,14 @@ int circle_shutdown = 0;	/* clean shutdown */
 int circle_reboot = 0;		/* reboot the game after a shutdown */
 int no_specials = 0;		/* Suppress ass. of special routines */
 int max_players = 0;		/* max descriptors available */
-int tics = 0;			/* for extern checkpointing */
+int tics_passed = 0;			/* for extern checkpointing */
 int scheck = 0;			/* for syntax checking mode */
 struct timeval null_time;	/* zero-valued time structure */
 byte reread_wizlist;		/* signal: SIGUSR1 */
 byte emergency_unban;		/* signal: SIGUSR2 */
 FILE *logfile = NULL;		/* Where to send the log messages. */
+int dg_act_check;		/* toggle for act_trigger */
+unsigned long pulse = 0;        /* number of pulses since game start */
 
 /* functions in this file */
 RETSIGTYPE reread_wizlists(int sig);
@@ -132,10 +136,11 @@ int perform_subst(struct descriptor_data *t, char *orig, char *subst);
 void record_usage(void);
 char *make_prompt(struct descriptor_data *point);
 void check_idle_passwords(void);
-void heartbeat(int pulse);
+void heartbeat(int heart_pulse);
 struct in_addr *get_bind_addr(void);
 int parse_ip(const char *addr, struct in_addr *inaddr);
 int set_sendbuf(socket_t s);
+void free_bufpool(void);
 void setup_log(const char *filename, int fd);
 int open_logfile(const char *filename, FILE *stderr_fp);
 #if defined(POSIX)
@@ -156,6 +161,7 @@ void clear_free_list(void);
 void free_messages(void);
 void Board_clear_all(void);
 void free_social_messages(void);
+void free_mail_index(void);
 void Free_Invalid_List(void);
 void load_config(void);
 
@@ -312,6 +318,7 @@ int main(int argc, char **argv)
    */
   log("%s", circlemud_version);
   log("%s", oasisolc_version);
+  log("%s", DG_SCRIPT_VERSION);
 
   if (chdir(dir) < 0) {
     perror("SYSERR: Fatal error changing to data directory");
@@ -364,6 +371,8 @@ void init_game(ush_int port)
 
   log("Opening mother connection.");
   mother_desc = init_socket(port);
+
+  event_init();
 
   boot_db();
 
@@ -601,7 +610,7 @@ void game_loop(socket_t mother_desc)
   struct timeval before_sleep, now, timeout;
   char comm[MAX_INPUT_LENGTH];
   struct descriptor_data *d, *next_d;
-  int pulse = 0, missed_pulses, maxdesc, aliased;
+  int missed_pulses, maxdesc, aliased;
 
   /* initialize various time values */
   null_time.tv_sec = 0;
@@ -823,42 +832,43 @@ void game_loop(socket_t mother_desc)
       num_invalid = 0;
     }
 
-    /* Roll pulse over after 10 hours */
-    if (pulse >= (10 * 60 * 60 * PASSES_PER_SEC))
-      pulse = 0;
-
 #ifdef CIRCLE_UNIX
-    /* Update tics for deadlock protection (UNIX only) */
-    tics++;
+    /* Update tics_passed for deadlock protection (UNIX only) */
+    tics_passed++;
 #endif
   }
 }
 
 
-void heartbeat(int pulse)
+void heartbeat(int heart_pulse)
 {
   static int mins_since_crashsave = 0;
 
-  if (!(pulse % PULSE_ZONE))
+  event_process();
+
+  if (!(heart_pulse % PULSE_DG_SCRIPT))
+    script_trigger_check();
+
+  if (!(heart_pulse % PULSE_ZONE))
     zone_update();
 
-  if (!(pulse % PULSE_IDLEPWD))		/* 15 seconds */
+  if (!(heart_pulse % PULSE_IDLEPWD))		/* 15 seconds */
     check_idle_passwords();
 
-  if (!(pulse % PULSE_MOBILE))
+  if (!(heart_pulse % PULSE_MOBILE))
     mobile_activity();
 
-  if (!(pulse % PULSE_VIOLENCE))
+  if (!(heart_pulse % PULSE_VIOLENCE))
     perform_violence();
 
-  if (!(pulse % (SECS_PER_MUD_HOUR * PASSES_PER_SEC))) {
+  if (!(heart_pulse % (SECS_PER_MUD_HOUR * PASSES_PER_SEC))) {
     weather_and_time(1);
     affect_update();
     point_update();
     fflush(player_fl);
   }
 
-  if (CONFIG_AUTO_SAVE && !(pulse % PULSE_AUTOSAVE)) {	/* 1 minute */
+  if (CONFIG_AUTO_SAVE && !(heart_pulse % PULSE_AUTOSAVE)) {	/* 1 minute */
     if (++mins_since_crashsave >= CONFIG_AUTOSAVE_TIME) {
       mins_since_crashsave = 0;
       Crash_save_all();
@@ -866,10 +876,10 @@ void heartbeat(int pulse)
     }
   }
 
-  if (!(pulse % PULSE_USAGE))
+  if (!(heart_pulse % PULSE_USAGE))
     record_usage();
 
-  if (!(pulse % PULSE_TIMESAVE))
+  if (!(heart_pulse % PULSE_TIMESAVE))
     save_mud_time(&time_info);
 
   /* Every pulse! Don't want them to stink the place up... */
@@ -2001,6 +2011,7 @@ void close_socket(struct descriptor_data *d)
     case CON_MEDIT:
     case CON_SEDIT:
     case CON_TEDIT:
+    case CON_TRIGEDIT:
       cleanup_olc(d, CLEANUP_ALL);
       break;
     default:
@@ -2128,11 +2139,11 @@ RETSIGTYPE reap(int sig)
 /* Dying anyway... */
 RETSIGTYPE checkpointing(int sig)
 {
-  if (!tics) {
+  if (!tics_passed) {
     log("SYSERR: CHECKPOINT shutdown: tics not updated. (Infinite loop suspected)");
     abort();
   } else
-    tics = 0;
+    tics_passed = 0;
 }
 
 
@@ -2314,6 +2325,9 @@ void perform_act(const char *orig, struct char_data *ch, struct obj_data *obj,
   const char *i = NULL;
   char lbuf[MAX_STRING_LENGTH], *buf, *j;
   bool uppercasenext = FALSE;
+  struct char_data *dg_victim = NULL;
+  struct obj_data *dg_target = NULL;
+  char *dg_arg = NULL;
 
   buf = lbuf;
 
@@ -2325,45 +2339,56 @@ void perform_act(const char *orig, struct char_data *ch, struct obj_data *obj,
 	break;
       case 'N':
 	CHECK_NULL(vict_obj, PERS((const struct char_data *) vict_obj, to));
+	dg_victim = (struct char_data *) vict_obj;
 	break;
       case 'm':
 	i = HMHR(ch);
 	break;
       case 'M':
 	CHECK_NULL(vict_obj, HMHR((const struct char_data *) vict_obj));
+	dg_victim = (struct char_data *) vict_obj;
 	break;
       case 's':
 	i = HSHR(ch);
 	break;
       case 'S':
 	CHECK_NULL(vict_obj, HSHR((const struct char_data *) vict_obj));
+	dg_victim = (struct char_data *) vict_obj;
 	break;
       case 'e':
 	i = HSSH(ch);
 	break;
       case 'E':
 	CHECK_NULL(vict_obj, HSSH((const struct char_data *) vict_obj));
+	dg_victim = (struct char_data *) vict_obj;
 	break;
       case 'o':
 	CHECK_NULL(obj, OBJN(obj, to));
 	break;
       case 'O':
 	CHECK_NULL(vict_obj, OBJN((const struct obj_data *) vict_obj, to));
+	dg_target = (struct obj_data *) vict_obj;
 	break;
       case 'p':
 	CHECK_NULL(obj, OBJS(obj, to));
 	break;
       case 'P':
 	CHECK_NULL(vict_obj, OBJS((const struct obj_data *) vict_obj, to));
+	dg_target = (struct obj_data *) vict_obj;
 	break;
       case 'a':
 	CHECK_NULL(obj, SANA(obj));
 	break;
       case 'A':
 	CHECK_NULL(vict_obj, SANA((const struct obj_data *) vict_obj));
+	dg_target = (struct obj_data *) vict_obj;
 	break;
       case 'T':
 	CHECK_NULL(vict_obj, (const char *) vict_obj);
+  	dg_arg = (char *) vict_obj;
+ 	break;
+      case 't':
+  	CHECK_NULL(obj, (char *) obj);
 	break;
       case 'F':
 	CHECK_NULL(vict_obj, fname((const char *) vict_obj));
@@ -2411,12 +2436,13 @@ void perform_act(const char *orig, struct char_data *ch, struct obj_data *obj,
   *(++buf) = '\n';
   *(++buf) = '\0';
 
+  if (to->desc)
   write_to_output(to->desc, "%s", CAP(lbuf));
+
+  if ((IS_NPC(to) && dg_act_check) && (to != ch))
+    act_mtrigger(to, lbuf, ch, dg_victim, obj, dg_target, dg_arg);
 }
 
-
-#define SENDOK(ch)	((ch)->desc && (to_sleeping || AWAKE(ch)) && \
-			(IS_NPC(ch) || !PLR_FLAGGED((ch), PLR_WRITING)))
 
 void act(const char *str, int hide_invisible, struct char_data *ch,
 	 struct obj_data *obj, const void *vict_obj, int type)
@@ -2441,6 +2467,11 @@ void act(const char *str, int hide_invisible, struct char_data *ch,
   /* check if TO_SLEEP is there, and remove it if it is. */
   if ((to_sleeping = (type & TO_SLEEP)))
     type &= ~TO_SLEEP;
+
+  /* this is a hack as well - DG_NO_TRIG is 256 -- Welcor */
+  /* If the bit is set, unset dg_act_check, thus the ! below */
+  if ((dg_act_check = !IS_SET(type, DG_NO_TRIG)))
+    REMOVE_BIT(type, DG_NO_TRIG);
 
   if (type == TO_CHAR) {
     if (ch && SENDOK(ch))

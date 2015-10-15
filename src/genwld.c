@@ -16,6 +16,7 @@
 #include "genolc.h"
 #include "genwld.h"
 #include "genzon.h"
+#include "dg_olc.h"
 
 extern struct room_data *world;
 extern struct zone_data *zone_table;
@@ -39,7 +40,11 @@ room_rnum add_room(struct room_data *room)
     return NOWHERE;
 
   if ((i = real_room(room->number)) != NOWHERE) {
+    tch = world[i].people; 
+    tobj = world[i].contents;
     copy_room(&world[i], room);
+    world[i].people = tch;
+    world[i].contents = tobj;
     add_to_save_list(zone_table[room->zone].number, SL_WLD);
     log("GenOLC: add_room: Updated existing room #%d.", room->number);
     return i;
@@ -84,6 +89,8 @@ room_rnum add_room(struct room_data *room)
       switch (ZCMD(i, j).command) {
       case 'M':
       case 'O':
+      case 'T':
+      case 'V':
 	ZCMD(i, j).arg3 += (ZCMD(i, j).arg3 >= found);
 	break;
       case 'D':
@@ -192,6 +199,8 @@ int delete_room(room_rnum rnum)
       switch (ZCMD(i, j).command) {
       case 'M':
       case 'O':
+      case 'T':
+      case 'V':
 	if (ZCMD(i, j).arg3 == rnum)
 	  ZCMD(i, j).command = '*';	/* Cancel command. */
 	else if (ZCMD(i, j).arg3 > rnum)
@@ -342,6 +351,7 @@ int save_rooms(zone_rnum rzone)
 	}
       }
       fprintf(sf, "S\n");
+      script_save_to_disk(sf, room, WLD_TRIGGER);
     }
   }
 
@@ -432,8 +442,8 @@ int copy_room_strings(struct room_data *dest, struct room_data *source)
     return FALSE;
   }
 
-  dest->description = strdup(source->description);
-  dest->name = strdup(source->name);
+  dest->description = str_udup(source->description);
+  dest->name = str_udup(source->name);
 
   for (i = 0; i < NUM_OF_DIRS; i++) {
     if (!R_EXIT(source, i))

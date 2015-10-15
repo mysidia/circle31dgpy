@@ -20,7 +20,7 @@
 #include "db.h"
 #include "interpreter.h"
 #include "constants.h"
-
+#include "dg_scripts.h"
 
 /* external variables */
 extern int mini_mud;
@@ -778,6 +778,7 @@ void mag_summons(int level, struct char_data *ch, struct obj_data *obj,
       mob->player.short_descr = strdup(GET_NAME(ch));
     }
     act(mag_summon_msgs[msg], FALSE, ch, 0, mob, TO_ROOM);
+    load_mtrigger(mob);
     add_follower(mob, ch);
   }
   if (handle_corpse) {
@@ -967,5 +968,6 @@ void mag_creations(int level, struct char_data *ch, int spellnum)
   obj_to_char(tobj, ch);
   act("$n creates $p.", FALSE, ch, tobj, 0, TO_ROOM);
   act("You create $p.", FALSE, ch, tobj, 0, TO_CHAR);
+  load_otrigger(tobj);
 }
 

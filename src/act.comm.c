@@ -20,6 +20,7 @@
 #include "db.h"
 #include "screen.h"
 #include "improved-edit.h"
+#include "dg_scripts.h"
 
 /* local functions */
 void perform_tell(struct char_data *ch, struct char_data *vict, char *arg);
@@ -45,7 +46,7 @@ ACMD(do_say)
     char buf[MAX_INPUT_LENGTH + 12];
 
     snprintf(buf, sizeof(buf), "$n says, '%s'", argument);
-    act(buf, FALSE, ch, 0, 0, TO_ROOM);
+    act(buf, FALSE, ch, 0, 0, TO_ROOM | DG_NO_TRIG);
 
     if (!IS_NPC(ch) && PRF_FLAGGED(ch, PRF_NOREPEAT))
       send_to_char(ch, "%s", CONFIG_OK);
@@ -54,6 +55,9 @@ ACMD(do_say)
       send_to_char(ch, "You say, '%s'\r\n", argument);
     }
   }
+  /* trigger check */
+  speech_mtrigger(ch, argument);
+  speech_wtrigger(ch, argument);
 }
 
 
