@@ -11,6 +11,9 @@
 *  $Author: galion $
 *  $Date: 1996/08/05 23:32:08 $
 *  $Revision: 3.9 $
+*
+* MODIFIED
+*     * Some indirection added to -> genscripts
 **************************************************************************/
 
 #include "conf.h"
@@ -192,7 +195,7 @@ void greet_memory_mtrigger(char_data *actor)
     for (mem = SCRIPT_MEM(ch); mem && SCRIPT_MEM(ch); mem=mem->next) {
       if (GET_ID(actor)!=mem->id) continue;
       if (mem->cmd) {
-        command_interpreter(ch, mem->cmd); /* no script */
+        command_interpreter(ch, mem->cmd, 0); /* no script */
         command_performed = 1;
         break;
       }
@@ -278,7 +281,7 @@ void entry_memory_mtrigger(char_data *ch)
       for (mem = SCRIPT_MEM(ch); mem && SCRIPT_MEM(ch); mem = mem->next) {
         if (GET_ID(actor)==mem->id) {
           struct script_memory *prev;
-          if (mem->cmd) command_interpreter(ch, mem->cmd);
+          if (mem->cmd) command_interpreter(ch, mem->cmd, 0);
           else {
             for (t = TRIGGERS(SCRIPT(ch)); t; t = t->next) {
               if (TRIGGER_CHECK(t, MTRIG_MEMORY) && (rand_number(1, 100) <=

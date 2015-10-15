@@ -619,7 +619,8 @@ int get_number(char **name)
   if ((ppos = strchr(*name, '.')) != NULL) {
     *ppos++ = '\0';
     strlcpy(number, *name, sizeof(number));
-    strcpy(*name, ppos);	/* strcpy: OK (always smaller) */
+    if (*name != ppos)
+	    memmove(*name, ppos, strlen(ppos) + 1);	/* strcpy: OK (always smaller) */
 
     for (i = 0; *(number + i); i++)
       if (!isdigit(*(number + i)))
@@ -893,7 +894,7 @@ void extract_char_final(struct char_data *ch)
   if (!IS_NPC(ch) && !ch->desc) {
     for (d = descriptor_list; d; d = d->next)
       if (d->original == ch) {
-	do_return(d->character, NULL, 0, 0);
+	do_return(d->character, NULL, 0, 0, 0);
         break;
       }
   }
@@ -908,7 +909,7 @@ void extract_char_final(struct char_data *ch)
      * body after the removal so dump them to the main menu.
      */
     if (ch->desc->original)
-      do_return(ch, NULL, 0, 0);
+      do_return(ch, NULL, 0, 0, 0);
     else {
       /*
        * Now we boot anybody trying to log in with the same character, to

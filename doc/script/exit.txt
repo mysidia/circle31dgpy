@@ -1,0 +1,29 @@
+
+THIS IS API information for the bottled object class
+
+ mud.Exit
+
+See API.txt for more info.
+
+Note: Python code should not ever instantiate mud.Exit objects directly.
+
+Use
+    server.py_Bottle_Exit(vnum, direction)
+
+To convert a RAW server.exit_data to a bottled exit
+
+There is no method provided to directly retrieve the raw structure from
+the bottled one.
+
+Provided Methods with example usages:
+
+NONE YET
+
+ATTRIBUTES (Mostly Read-ONLY)
+
+   description
+   keyword
+   key
+   to_room
+   exit_info
+   

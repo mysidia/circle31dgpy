@@ -18,7 +18,7 @@
 #include "db.h"
 #include "handler.h"
 #include "interpreter.h"
-#include "dg_scripts.h"
+#include "genscript.h"
 
 /* local functions */
 int graf(int grafage, int p0, int p1, int p2, int p3, int p4, int p5, int p6);
@@ -468,7 +468,8 @@ void point_update(void)
     else if (GET_OBJ_TIMER(j)>0) {
       GET_OBJ_TIMER(j)--; 
       if (!GET_OBJ_TIMER(j))
-        timer_otrigger(j);
+        script_timer_o_trigger(&j);
+      /* j possibly NULL */
     }
   }
 }

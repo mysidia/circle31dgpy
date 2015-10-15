@@ -79,7 +79,7 @@ void init_boards(void);
 char *msg_storage[INDEX_SIZE];
 int msg_storage_taken[INDEX_SIZE];
 int num_of_msgs[NUM_OF_BOARDS];
-int ACMD_READ, ACMD_LOOK, ACMD_EXAMINE, ACMD_WRITE, ACMD_REMOVE;
+CMD_DATA *ACMD_READ, *ACMD_LOOK, *ACMD_EXAMINE, *ACMD_WRITE, *ACMD_REMOVE;
 struct board_msginfo msg_index[NUM_OF_BOARDS][MAX_BOARD_MESSAGES];
 
 
@@ -164,21 +164,21 @@ SPECIAL(gen_board)
   if (!ch->desc)
     return (0);
 
-  if (cmd != ACMD_WRITE && cmd != ACMD_LOOK && cmd != ACMD_EXAMINE &&
-      cmd != ACMD_READ && cmd != ACMD_REMOVE)
+  if (commandp != ACMD_WRITE && commandp != ACMD_LOOK && commandp != ACMD_EXAMINE &&
+      commandp != ACMD_READ && commandp != ACMD_REMOVE)
     return (0);
 
   if ((board_type = find_board(ch)) == -1) {
     log("SYSERR:  degenerate board!  (what the hell...)");
     return (0);
   }
-  if (cmd == ACMD_WRITE)
+  if (commandp == ACMD_WRITE)
     return (Board_write_message(board_type, ch, argument, board));
-  else if (cmd == ACMD_LOOK || cmd == ACMD_EXAMINE)
+  else if (commandp == ACMD_LOOK || commandp == ACMD_EXAMINE)
     return (Board_show_board(board_type, ch, argument, board));
-  else if (cmd == ACMD_READ)
+  else if (commandp == ACMD_READ)
     return (Board_display_msg(board_type, ch, argument, board));
-  else if (cmd == ACMD_REMOVE)
+  else if (commandp == ACMD_REMOVE)
     return (Board_remove_msg(board_type, ch, argument, board));
   else
     return (0);

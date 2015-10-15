@@ -20,7 +20,8 @@
 #include "db.h"
 #include "constants.h"
 #include "interpreter.h"
-#include "dg_scripts.h"
+#include "genscript.h"
+
 
 /* external variables */
 extern room_rnum r_mortal_start_room;
@@ -77,9 +78,8 @@ ASPELL(spell_recall)
   char_to_room(victim, r_mortal_start_room);
   act("$n appears in the middle of the room.", TRUE, victim, 0, 0, TO_ROOM);
   look_at_room(victim, 0);
-  entry_memory_mtrigger(victim);
-  greet_mtrigger(victim, -1);
-  greet_memory_mtrigger(victim);
+  
+  check_hooks(HOOK_CONT_TELEPORTED, ch_script_cont(victim), 0, SNull, SNull);
 }
 
 
@@ -100,9 +100,7 @@ ASPELL(spell_teleport)
   char_to_room(victim, to_room);
   act("$n slowly fades into existence.", FALSE, victim, 0, 0, TO_ROOM);
   look_at_room(victim, 0);
-  entry_memory_mtrigger(victim);
-  greet_mtrigger(victim, -1);
-  greet_memory_mtrigger(victim);
+  check_hooks(HOOK_CONT_TELEPORTED, ch_script_cont(victim), 0, SNull, SNull);
 }
 
 #define SUMMON_FAIL "You failed.\r\n"
@@ -153,9 +151,7 @@ ASPELL(spell_summon)
   act("$n arrives suddenly.", TRUE, victim, 0, 0, TO_ROOM);
   act("$n has summoned you!", FALSE, ch, 0, victim, TO_VICT);
   look_at_room(victim, 0);
-  entry_memory_mtrigger(victim);
-  greet_mtrigger(victim, -1);
-  greet_memory_mtrigger(victim);
+  check_hooks(HOOK_CONT_TELEPORTED, ch_script_cont(victim), 0, SNull, SNull);
 }
 
 

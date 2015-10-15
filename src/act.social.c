@@ -21,12 +21,14 @@
 #include "spells.h"
 
 
+
+
 /* local globals */
 static int list_top = -1;
 
 /* local functions */
 char *fread_action(FILE *fl, int nr);
-int find_action(int cmd);
+int find_action(CMD_DATA* cmd);
 ACMD(do_action);
 ACMD(do_insult);
 void boot_social_messages(void);
@@ -56,14 +58,15 @@ struct social_messg {
 } *soc_mess_list;
 
 
-int find_action(int cmd)
+int find_action(CMD_DATA* cmdp)
 {
+  int cmd = cmdp ? cmdp->number : 0;
   int bot, top, mid;
 
   bot = 0;
   top = list_top;
 
-  if (top < 0)
+  if (top < 0 || bot >= top)
     return (-1);
 
   for (;;) {
@@ -90,7 +93,7 @@ ACMD(do_action)
   struct social_messg *action;
   struct char_data *vict;
 
-  if ((act_nr = find_action(cmd)) < 0) {
+  if ((act_nr = find_action(commandp)) < 0) {
     send_to_char(ch, "That action is not supported.\r\n");
     return;
   }
@@ -216,6 +219,8 @@ void boot_social_messages(void)
   int nr, i, hide, min_pos, curr_soc = -1;
   char next_soc[100];
   struct social_messg temp;
+  CMD_DATA* cmd;
+  
 
   /* open social file */
   if (!(fl = fopen(SOCMESS_FILE, "r"))) {
@@ -223,9 +228,13 @@ void boot_social_messages(void)
     exit(1);
   }
   /* count socials & allocate space */
-  for (nr = 0; *cmd_info[nr].command != '\n'; nr++)
-    if (cmd_info[nr].command_pointer == do_action)
-      list_top++;
+  for(nr = 0; nr < 256; nr++) {
+	  for( cmd = LIST_FIRST(&cmd_hash[nr]); cmd; cmd = LIST_NEXT(cmd, cmd_lst)) {
+		 if (cmd->language == NATIVE &&
+		     cmd->native_callfun == do_action )
+			 list_top++;
+	  }
+  }
 
   CREATE(soc_mess_list, struct social_messg, list_top + 1);
 
@@ -244,7 +253,13 @@ void boot_social_messages(void)
     }
  
     /* read the stuff */
-    soc_mess_list[curr_soc].act_nr = nr = find_command(next_soc);
+    cmd = find_command(next_soc);
+    if (cmd == NULL)
+    	nr = -1;
+    else
+        nr = cmd->number;
+
+    soc_mess_list[curr_soc].act_nr = nr;
     soc_mess_list[curr_soc].hide = hide;
     soc_mess_list[curr_soc].min_victim_position = min_pos;
 
@@ -275,7 +290,7 @@ void boot_social_messages(void)
     }
 
     /* If the command we found isn't do_action, we didn't count it for the CREATE(). */
-    if (cmd_info[nr].command_pointer != do_action) {
+    if (cmd && cmd->native_callfun != do_action) {
       log("SYSERR: Social '%s' already assigned to a command.", next_soc);
       memset(&soc_mess_list[curr_soc--], 0, sizeof(struct social_messg));
     }

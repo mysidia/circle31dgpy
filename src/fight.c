@@ -21,7 +21,7 @@
 #include "spells.h"
 #include "screen.h"
 #include "constants.h"
-#include "dg_scripts.h"
+#include "genscript.h"
 
 /* Structures */
 struct char_data *combat_list = NULL;	/* head of l-list of fighting chars */
@@ -95,7 +95,6 @@ void appear(struct char_data *ch)
 	FALSE, ch, 0, 0, TO_ROOM);
 }
 
-
 int compute_armor_class(struct char_data *ch)
 {
   int armorclass = GET_AC(ch);
@@ -103,7 +102,10 @@ int compute_armor_class(struct char_data *ch)
   if (AWAKE(ch))
     armorclass += dex_app[GET_DEX(ch)].defensive * 10;
 
-  return (MAX(-100, armorclass));      /* -100 is lowest */
+  armorclass = (MAX(-100, armorclass));      /* -100 is lowest */
+  script_char_compute_armor_class(&ch, &armorclass);
+
+  return armorclass;
 }
 
 
@@ -306,8 +308,10 @@ void make_corpse(struct char_data *ch)
   /* transfer character's equipment to the corpse */
   for (i = 0; i < NUM_WEARS; i++)
     if (GET_EQ(ch, i)) {
-      remove_otrigger(GET_EQ(ch, i), ch);
-      obj_to_obj(unequip_char(ch, i), corpse);
+      script_remove_o_trigger(&GET_EQ(ch, i), &ch);
+      if (GET_EQ(ch, i)) {
+	      obj_to_obj(unequip_char(ch, i), corpse);
+      }
     }
 
   /* transfer gold */
@@ -370,7 +374,7 @@ void raw_kill(struct char_data * ch, struct char_data * killer)
   GET_POS(ch) = POS_STANDING; 
   
   if (killer) {
-    if (death_mtrigger(ch, killer))
+    if (check_hooks(HOOK_CONT_DIED, ch_script_cont(ch), killer, SNull, SNull ))
       death_cry(ch);
   } else
   death_cry(ch);
@@ -412,7 +416,7 @@ void perform_group_gain(struct char_data *ch, int base,
 
 void group_gain(struct char_data *ch, struct char_data *victim)
 {
-  int tot_members, base, tot_gain;
+  int tot_members, base, cur_base, tot_gain;
   struct char_data *k;
   struct follow_type *f;
 
@@ -440,12 +444,19 @@ void group_gain(struct char_data *ch, struct char_data *victim)
   else
     base = 0;
 
-  if (AFF_FLAGGED(k, AFF_GROUP) && IN_ROOM(k) == IN_ROOM(ch))
-    perform_group_gain(k, base, victim);
+  if (AFF_FLAGGED(k, AFF_GROUP) && IN_ROOM(k) == IN_ROOM(ch)) {
+    cur_base = base;
+    script_compute_kill_exp(&ch, &victim, tot_members, &cur_base);
+      
+    perform_group_gain(k, cur_base, victim);
+  }
 
   for (f = k->followers; f; f = f->next)
-    if (AFF_FLAGGED(f->follower, AFF_GROUP) && IN_ROOM(f->follower) == IN_ROOM(ch))
-      perform_group_gain(f->follower, base, victim);
+    if (AFF_FLAGGED(f->follower, AFF_GROUP) && IN_ROOM(f->follower) == IN_ROOM(ch)) {
+      cur_base = base;
+      script_compute_kill_exp(&ch, &victim, tot_members, &cur_base);
+      perform_group_gain(f->follower, cur_base, victim);
+    }
 }
 
 
@@ -462,6 +473,8 @@ void solo_gain(struct char_data *ch, struct char_data *victim)
     exp += MAX(0, (exp * MIN(8, (GET_LEVEL(victim) - GET_LEVEL(ch)))) / 8);
 
   exp = MAX(exp, 1);
+  if (script_compute_kill_exp(&ch, &victim, 1, &exp) != SCRIPT_RET_OK)
+      exp = MAX(exp, 1);
 
   if (exp > 1)
     send_to_char(ch, "You receive %d experience points.\r\n", exp);
@@ -677,13 +690,16 @@ int skill_message(int dam, struct char_data *ch, struct char_data *vict,
 }
 
 /*
- * Alert: As of bpl14, this function returns the following codes:
- *	< 0	Victim died.
+ *      -3      Both died
+ *      -2      Just actor died
+ *	-1	Just victim died.
  *	= 0	No damage.
  *	> 0	How much damage done.
  */
 int damage(struct char_data *ch, struct char_data *victim, int dam, int attacktype)
 {
+  int result, ret;
+  
   if (GET_POS(victim) <= POS_DEAD) {
     /* This is "normal"-ish now with delayed extraction. -gg 3/15/2001 */
     if (PLR_FLAGGED(victim, PLR_NOTDEADYET) || MOB_FLAGGED(victim, MOB_NOTDEADYET))
@@ -693,6 +709,22 @@ int damage(struct char_data *ch, struct char_data *victim, int dam, int attackty
 		GET_NAME(victim), GET_ROOM_VNUM(IN_ROOM(victim)), GET_NAME(ch));
     die(victim, ch);
     return (-1);			/* -je, 7/7/92 */
+  }
+
+  result = script_char_damage_char(&ch, &victim, &dam, &attacktype, &ret);
+  
+  if (IS_SET(result, SCRIPT_RET_VICT_DEAD)) {
+	  if (IS_SET(result, SCRIPT_RET_ACTOR_DEAD))
+		  return -3;
+	  return -1;
+  }
+  
+  if (IS_SET(result, SCRIPT_RET_ACTOR_DEAD)) {
+	  return -2;
+  }
+  
+  if (IS_SET(result, SCRIPT_RET_INTERCEPT)) {
+	  return ret;
   }
 
   /* peaceful rooms */
@@ -801,19 +833,19 @@ int damage(struct char_data *ch, struct char_data *victim, int dam, int attackty
       send_to_char(victim, "%sYou wish that your wounds would stop BLEEDING so much!%s\r\n",
 		CCRED(victim, C_SPR), CCNRM(victim, C_SPR));
       if (ch != victim && MOB_FLAGGED(victim, MOB_WIMPY))
-	do_flee(victim, NULL, 0, 0);
+	do_flee(victim, NULL, 0, 0, 0);
     }
     if (!IS_NPC(victim) && GET_WIMP_LEV(victim) && (victim != ch) &&
 	GET_HIT(victim) < GET_WIMP_LEV(victim) && GET_HIT(victim) > 0) {
       send_to_char(victim, "You wimp out, and attempt to flee!\r\n");
-      do_flee(victim, NULL, 0, 0);
+      do_flee(victim, NULL, 0, 0, 0);
     }
     break;
   }
 
   /* Help out poor linkless people who are attacked */
   if (!IS_NPC(victim) && !(victim->desc) && GET_POS(victim) > POS_STUNNED) {
-    do_flee(victim, NULL, 0, 0);
+    do_flee(victim, NULL, 0, 0, 0);
     if (!FIGHTING(victim)) {
       act("$n is rescued by divine forces.", FALSE, victim, 0, 0, TO_ROOM);
       GET_WAS_IN(victim) = IN_ROOM(victim);
@@ -863,27 +895,36 @@ int compute_thaco(struct char_data *ch, struct char_data *victim)
   else		/* THAC0 for monsters is set in the HitRoll */
     calc_thaco = 20;
   calc_thaco -= str_app[STRENGTH_APPLY_INDEX(ch)].tohit;
-  calc_thaco -= GET_HITROLL(ch);
+  calc_thaco -= script_char_compute_hitroll(&ch, NULL);
   calc_thaco -= (int) ((GET_INT(ch) - 13) / 1.5);	/* Intelligence helps! */
   calc_thaco -= (int) ((GET_WIS(ch) - 13) / 1.5);	/* So does wisdom */
+  script_char_compute_thaco(&ch, &victim, &calc_thaco);
 
   return calc_thaco;
 }
 
 
-void hit(struct char_data *ch, struct char_data *victim, int type)
+//
+// Returns:
+//    -3   [Intercept] or Both ch and vict died
+//    -2   [Intercept] or ch died
+//    -1   Vict died
+//    Else Amount of Damage
+//
+int hit(struct char_data *ch, struct char_data *victim, int type)
 {
   struct obj_data *wielded = GET_EQ(ch, WEAR_WIELD);
-  int w_type, victim_ac, calc_thaco, dam, diceroll;
+  int w_type, victim_ac, calc_thaco, dam, dam_app, diceroll, dam_result = 0;
 
   /* check if the character has a fight trigger */
-  fight_mtrigger(ch);
+  if (check_null_hooks(HOOK_FIGHTING, ch, SNull, SNull))
+	  return -3;
 
   /* Do some sanity checking, in case someone flees, etc. */
   if (IN_ROOM(ch) != IN_ROOM(victim)) {
     if (FIGHTING(ch) && FIGHTING(ch) == victim)
       stop_fighting(ch);
-    return;
+    return 0;
   }
 
   /* Find the weapon type (for display purposes only) */
@@ -920,6 +961,9 @@ void hit(struct char_data *ch, struct char_data *victim, int type)
   else
     dam = (calc_thaco - diceroll <= victim_ac);
 
+  if (script_char_hitmiss_catch(&ch, &victim, &type, &diceroll, &calc_thaco, &victim_ac, &dam))
+	  return 0;
+
   if (!dam)
     /* the attacker missed the victim */
     damage(ch, victim, 0, type == SKILL_BACKSTAB ? SKILL_BACKSTAB : w_type);
@@ -928,7 +972,7 @@ void hit(struct char_data *ch, struct char_data *victim, int type)
 
     /* Start with the damage bonuses: the damroll and strength apply */
     dam = str_app[STRENGTH_APPLY_INDEX(ch)].todam;
-    dam += GET_DAMROLL(ch);
+    dam += script_char_compute_damroll(&ch, NULL);
 
     /* Maybe holding arrow? */
     if (wielded && GET_OBJ_TYPE(wielded) == ITEM_WEAPON) {
@@ -960,15 +1004,18 @@ void hit(struct char_data *ch, struct char_data *victim, int type)
 
     /* at least 1 hp damage min per hit */
     dam = MAX(1, dam);
+    dam_app = dam;
 
     if (type == SKILL_BACKSTAB)
-      damage(ch, victim, dam * backstab_mult(GET_LEVEL(ch)), SKILL_BACKSTAB);
+      dam_result = damage(ch, victim, dam_app = dam * backstab_mult(GET_LEVEL(ch)), SKILL_BACKSTAB);
     else
-      damage(ch, victim, dam, w_type);
+      dam_result = damage(ch, victim, dam_app = dam, w_type);
   }
 
   /* check if the victim has a hitprcnt trigger */
-  hitprcnt_mtrigger(victim);
+  if (dam_result != -1 && dam_result != -3)
+      check_null_hooks(HOOK_HITPERCENT_LESSTHAN, victim, SNull, SNull);
+  return dam_result;
 }
 
 
@@ -1003,10 +1050,12 @@ void perform_violence(void)
       continue;
     }
 
-    hit(ch, FIGHTING(ch), TYPE_UNDEFINED);
+    if (hit(ch, FIGHTING(ch), TYPE_UNDEFINED) < -1) {
+      continue;
+    }
     if (MOB_FLAGGED(ch, MOB_SPEC) && GET_MOB_SPEC(ch) && !MOB_FLAGGED(ch, MOB_NOTDEADYET)) {
       char actbuf[MAX_INPUT_LENGTH] = "";
-      (GET_MOB_SPEC(ch)) (ch, ch, 0, actbuf);
+      (GET_MOB_SPEC(ch)) (ch, ch, 0, actbuf, 0);
     }
   }
 }

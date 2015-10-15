@@ -230,7 +230,7 @@ void hunt_victim(struct char_data *ch)
   if (!found) {
     char actbuf[MAX_INPUT_LENGTH] = "Damn!  My prey is gone!!";
 
-    do_say(ch, actbuf, 0, 0);
+    do_say(ch, actbuf, 0, 0, 0);
     HUNTING(ch) = NULL;
     return;
   }
@@ -238,7 +238,7 @@ void hunt_victim(struct char_data *ch)
     char buf[MAX_INPUT_LENGTH];
 
     snprintf(buf, sizeof(buf), "Damn!  I lost %s!", HMHR(HUNTING(ch)));
-    do_say(ch, buf, 0, 0);
+    do_say(ch, buf, 0, 0, 0);
     HUNTING(ch) = NULL;
   } else {
     perform_move(ch, dir, 1);

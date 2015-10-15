@@ -25,7 +25,7 @@
 #include "house.h"
 #include "constants.h"
 #include "oasis.h"
-#include "dg_scripts.h"
+#include "genscript.h"
 #include "dg_event.h"
 
 /**************************************************************************
@@ -158,6 +158,8 @@ void free_object_strings(struct obj_data *obj);
 void free_object_strings_proto(struct obj_data *obj);
 void boot_context_help(void);
 void free_context_help(void);
+void boot_commands();
+void initialize_python();
 
 /* external vars */
 extern struct descriptor_data *descriptor_list;
@@ -491,6 +493,15 @@ void boot_db(void)
   log("Loading spell definitions.");
   mag_assign_spells();
 
+  log("Loading commands");
+  boot_commands();
+
+#ifdef HAVE_PYTHON
+  log("Loading python");
+  initialize_python();
+#endif
+      
+
   boot_world();
 
   log("Loading help entries.");
@@ -525,7 +536,7 @@ void boot_db(void)
   init_spell_levels();
 
   log("Sorting command list and spells.");
-  sort_commands();
+  /* sort_commands(); */
   sort_spells();
 
   log("Booting mail system.");
@@ -2023,6 +2034,7 @@ struct char_data *read_mobile(mob_vnum nr, int type) /* and mob_rnum */
 
   copy_proto_script(&mob_proto[i], mob, MOB_TRIGGER);
   assign_triggers(mob, MOB_TRIGGER);
+  script_mobread(mob);
 
   return (mob);
 }
@@ -2067,6 +2079,7 @@ struct obj_data *read_object(obj_vnum nr, int type) /* and obj_rnum */
 
   copy_proto_script(&obj_proto[i], obj, OBJ_TRIGGER);
   assign_triggers(obj, OBJ_TRIGGER);
+  script_objread(obj);
 
   return (obj);
 }
@@ -2186,9 +2199,14 @@ void reset_zone(zone_rnum zone)
       if (mob_index[ZCMD.arg1].number < ZCMD.arg2) {
 	mob = read_mobile(ZCMD.arg1, REAL);
 	char_to_room(mob, ZCMD.arg3);
-        load_mtrigger(mob);
-        tmob = mob;
-	last_cmd = 1;
+        if (IS_SET(script_mob_loaded(&mob), SCRIPT_RET_SUBJECT_DEAD)) {
+		mob = NULL;
+		last_cmd = 0;
+	}
+	else {
+	        tmob = mob;
+		last_cmd = 1;
+	}
       } else
 	last_cmd = 0;
       tobj = NULL;
@@ -2200,9 +2218,13 @@ void reset_zone(zone_rnum zone)
 	  obj = read_object(ZCMD.arg1, REAL);
 	  obj_to_room(obj, ZCMD.arg3);
 	  last_cmd = 1;
-          load_otrigger(obj);
-          tobj = obj;
-	} else {
+          if (IS_SET(script_obj_loaded(&obj), SCRIPT_RET_OBJECT_DEAD)) {
+              obj = NULL;
+              last_cmd = 0;
+              break;
+          }          
+          tobj = obj;          
+        } else {
 	  obj = read_object(ZCMD.arg1, REAL);
 	  IN_ROOM(obj) = NOWHERE;
 	  last_cmd = 1;
@@ -2223,7 +2245,12 @@ void reset_zone(zone_rnum zone)
 	}
 	obj_to_obj(obj, obj_to);
 	last_cmd = 1;
-        load_otrigger(obj);
+        if (IS_SET(script_obj_loaded(&obj), SCRIPT_RET_OBJECT_DEAD)) {
+            obj = NULL;
+            last_cmd = 0;
+	    tmob = NULL;
+            break;
+        }    
         tobj = obj;
       } else
 	last_cmd = 0;
@@ -2240,7 +2267,13 @@ void reset_zone(zone_rnum zone)
 	obj = read_object(ZCMD.arg1, REAL);
 	obj_to_char(obj, mob);
 	last_cmd = 1;
-        load_otrigger(obj);
+        if (IS_SET(script_obj_loaded(&obj), SCRIPT_RET_OBJECT_DEAD)) {
+            obj = NULL;
+            last_cmd = 0;
+	    tmob = NULL;
+            break;
+        }
+    
         tobj = obj;
       } else
 	last_cmd = 0;
@@ -2259,8 +2292,16 @@ void reset_zone(zone_rnum zone)
 	} else {
 	  obj = read_object(ZCMD.arg1, REAL);
           IN_ROOM(obj) = IN_ROOM(mob);
-          load_otrigger(obj);
-          if (wear_otrigger(obj, mob, ZCMD.arg3)) {
+	  
+          if (IS_SET(script_obj_loaded(&obj), SCRIPT_RET_OBJECT_DEAD)) {
+              obj = NULL;
+	      last_cmd = 0;
+	      tmob = NULL;
+	      obj = NULL;
+              break;
+          }
+    
+          if (script_wear_o_trigger(&obj, &mob, ZCMD.arg3)) {
             IN_ROOM(obj) = NOWHERE;
 	  equip_char(mob, obj, ZCMD.arg3);
           } else
@@ -2582,7 +2623,7 @@ void char_to_store(struct char_data *ch, struct char_file_u *st)
     if (GET_EQ(ch, i)) {
       char_eq[i] = unequip_char(ch, i);
 #ifndef NO_EXTRANEOUS_TRIGGERS
-      remove_otrigger(char_eq[i], ch);
+      script_remove_o_trigger(&char_eq[i], &ch);
 #endif
     } else
       char_eq[i] = NULL;
@@ -2669,7 +2710,7 @@ void char_to_store(struct char_data *ch, struct char_file_u *st)
   for (i = 0; i < NUM_WEARS; i++) {
     if (char_eq[i]) {
 #ifndef NO_EXTRANEOUS_TRIGGERS
-      if (wear_otrigger(char_eq[i], ch, i))
+      if (script_wear_o_trigger(&char_eq[i], &ch, i))
 #endif
       equip_char(ch, char_eq[i], i);
 #ifndef NO_EXTRANEOUS_TRIGGERS
@@ -2741,7 +2782,10 @@ char *fread_string(FILE *fl, const char *error)
     /* If there is a '~', end the string; else put an "\r\n" over the '\n'. */
     /* now only removes trailing ~'s -- Welcor */
     point = strchr(tmp, '\0');
-    for (point-- ; (*point=='\r' || *point=='\n'); point--);
+    if (point != NULL && (point > tmp)) {
+	    for (point-- ; (point > tmp) && (*point=='\r' || *point=='\n'); point--) ;
+    }
+    
     if (*point=='~') {
       *point='\0';
       done = 1;
@@ -3674,4 +3718,54 @@ void load_config( void )
   }
   
   fclose(fl);
+}
+
+char lower(char x) {
+	return LOWER(x);
+}
+
+
+CMD_DATA* make_hardwired_command(const char* name, CMD_FUN* proc, int subcmd)
+{
+	 CMD_DATA* p;
+	 
+	 CREATE(p, CMD_DATA, 1);
+	 p->name = strdup(name);
+	 p->priority = 2;
+	 p->override = 1;
+	 p->language = NATIVE;
+	 p->native_callfun = proc;
+	 p->subcmd = subcmd;
+	 insert_command(p, NATIVE);
+	 return p;
+}
+
+void boot_commands()
+{
+	extern int interp_dbrestart(FILE*);
+	ACMD(do_script_credits);
+	ACMD(do_gen_ps);
+	ACMD(do_help);
+	
+	FILE* fp = fopen(COMMANDS_FILE, "r");
+	CMD_DATA* p;
+
+	if (!fp) {
+		log("SYSERR: Unable to open %s", COMMANDS_FILE);
+		return;
+	}
+
+	/* Pre-load these commands at high priority, so they may never be overriden */
+	interp_dbrestart(fp);
+	make_hardwired_command("credits", do_gen_ps, SCMD_CREDITS);
+	p = make_hardwired_command("script.credits", do_script_credits, 0);
+	p->flags |= CMD_NOABBREV;
+	make_hardwired_command("version", do_gen_ps, SCMD_VERSION);
+	make_hardwired_command("help", do_help, 0);
+	
+	if ( interp_dbparse() != 0 ) {
+		log("Unable to parse %s", COMMANDS_FILE);
+		exit(2);
+	}
+
 }

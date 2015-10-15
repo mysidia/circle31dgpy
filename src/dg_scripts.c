@@ -6,6 +6,9 @@
 *  $Author: egreen $
 *  $Date: 1996/09/24 03:48:42 $
 *  $Revision: 3.25 $
+*
+*  MODIFIED
+*   * Fields added for py scripts
 **************************************************************************/
 
 #include "conf.h"
@@ -13,7 +16,6 @@
 
  
 #include "structs.h"
-#include "dg_scripts.h"
 #include "utils.h"
 #include "comm.h"
 #include "interpreter.h"
@@ -22,6 +24,7 @@
 #include "db.h"
 #include "screen.h"
 #include "constants.h"
+#include "genscript.h"
 
 #define PULSES_PER_MUD_HOUR     (SECS_PER_MUD_HOUR*PASSES_PER_SEC)
 
@@ -587,7 +590,7 @@ void script_trigger_check(void)
       if (IS_SET(SCRIPT_TYPES(sc), WTRIG_RANDOM) &&
           (!is_empty(world[IN_ROOM(ch)].zone) ||
            IS_SET(SCRIPT_TYPES(sc), WTRIG_GLOBAL)))
-        random_mtrigger(ch);
+	script_random_mob_trigger(ch);
     }
   }
   
@@ -596,7 +599,7 @@ void script_trigger_check(void)
       sc = SCRIPT(obj);
 
       if (IS_SET(SCRIPT_TYPES(sc), OTRIG_RANDOM))
-        random_otrigger(obj);
+        script_random_o_trigger(&obj);
     }
   }
 
@@ -608,7 +611,7 @@ void script_trigger_check(void)
       if (IS_SET(SCRIPT_TYPES(sc), WTRIG_RANDOM) &&
           (!is_empty(room->zone) ||
            IS_SET(SCRIPT_TYPES(sc), WTRIG_GLOBAL)))
-        random_wtrigger(room);
+        script_random_w_trigger(&room);
     }
   }
 }
@@ -1353,16 +1356,24 @@ int text_processed(char *field, char *subfield, struct trig_var_data *vd,
     /* find the mud command returned from this text */
 /* NOTE: you may need to replace "cmd_info" with "complete_cmd_info", */
 /* depending on what patches you've got applied.                      */
-    extern const struct command_info cmd_info[];
+/*    extern const struct command_info cmd_info[]; */
 /* on older source bases:    extern struct command_info *cmd_info; */
-    int length, cmd;
-    for (length = strlen(vd->value), cmd = 0;
-         *cmd_info[cmd].command != '\n'; cmd++)
-      if (!strncmp(cmd_info[cmd].command, vd->value, length))
-        break;
+    int length;
+    unsigned int slot;
+    CMD_DATA* cmdp;
+    
+    length = strlen(vd->value);
 
-    if (*cmd_info[cmd].command == '\n') strcpy(str,"");
-    else snprintf(str, slen, "%s", cmd_info[cmd].command);
+    for(slot = 0; slot < 256; slot++) {
+	    for(cmdp = LIST_FIRST(&cmd_hash[slot]); cmdp; cmdp = LIST_NEXT(cmdp, cmd_lst))
+	    {
+		    if (!strncmp(cmdp->name, vd->value, length))
+			    break;
+	    }
+    }
+   
+    if (cmdp == NULL) strcpy(str,"");
+    else snprintf(str, slen, "%s", cmdp->name);
     return TRUE;
   }
 
@@ -1503,6 +1514,18 @@ void find_replacement(void *go, struct script_data *sc, trig_data *trig,
           o = NULL;
           break;
         }
+      }
+
+      else if (!str_cmp(var, "script")) {	  
+	      if (!str_cmp(field, "has_python")) {
+#ifdef HAVE_PYTHON
+		      snprintf(str, slen, "%d", 1);
+#else
+		      snprintf(str, slen, "%d", 0);
+#endif		      
+	      }
+
+
       }
       
       else if (!str_cmp(var, "people")) {
@@ -3350,7 +3373,7 @@ int script_driver(void **go_adress, trig_data *trig, int type, int mode)
       else {
         switch (type) {
         case MOB_TRIGGER:
-          command_interpreter((char_data *) go, cmd);
+          command_interpreter((char_data *) go, cmd, 0);
           break;
         case OBJ_TRIGGER:
           obj_command_interpreter((obj_data *) go, cmd);

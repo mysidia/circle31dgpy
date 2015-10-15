@@ -1,0 +1,52 @@
+
+THIS IS API information for the bottled object class
+
+ mud.Room
+
+See API.txt for more info.
+
+Note: Python code should not ever instantiate mud.Room objects directly.
+
+Use
+    server.py_Bottle_Room(vnum)
+
+To convert a RAW server.room_data to a new bottled room.
+
+There is no method provided to directly retrieve the raw structure from
+the bottled one.
+
+Provided Methods with example usages:
+
+NONE YET
+
+ATTRIBUTES (Mostly Read-ONLY)
+
+  vnum
+  name 
+  people <- Returns a Python list of mud.Character elements, Or it returns None
+            if noone is in the room
+
+  contents <- Returns a python list of mud.Object elements, Or None if there
+            aren't any in the room.
+
+  zone_num <- Returns the zone vnum, or -1 if there was an error
+
+  sector
+  description
+  flags
+  light
+  dirs <- Returns a python list of mud.Rooms in the various directions.  
+          For directions that have no exit, the corresponding element
+          will be Py_None
+
+          so  
+               If x.dirs[server.NORTH] == None       there's no exit
+
+          otherwise, there  is an exit, and x.dirs[server.NORTH] is a reference
+          to the room object.
+
+exits <- This returns a dictionary with an element for each existing exit.
+         And the value is a mud.Exit object.
+
+         i.e.   If there's a north exit, then fooroom.exits["north"]
+                points to the exit information held in the mud.Exit object

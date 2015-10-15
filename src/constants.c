@@ -38,6 +38,13 @@ const char *dirs[] =
   "\n"
 };
 
+const char *script_languages[] = 
+{
+   "NATIVE", 
+   "PYTHON",
+   "\n"
+};
+
 
 /* ROOM_x */
 const char *room_bits[] = {

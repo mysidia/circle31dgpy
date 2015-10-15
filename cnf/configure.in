@@ -3,9 +3,12 @@ AC_INIT(src/act.comm.c)
 AC_SUBST(MYFLAGS)
 AC_SUBST(NETLIB)
 AC_SUBST(CRYPTLIB)
+AC_SUBST(PYTHONLIB)
+AC_SUBST(PY_INCLUDE)
 
 AC_CONFIG_HEADER(src/conf.h)
 AC_DEFINE(CIRCLE_UNIX)
+AC_DEFINE(HAVE_DGSCRIPT)
 
 dnl Find the 'more' program
 AC_CHECK_PROGS(MORE, less most more cat)
@@ -66,6 +69,8 @@ if test $ac_cv_prog_gcc = yes; then
     fi
   fi
 
+  MYFLAGS="$MYFLAGS -fno-strict-aliasing"
+
 else
   dnl We aren't using gcc so we can't assume any special flags.
   MYFLAGS=""
@@ -87,6 +92,9 @@ AC_CHECK_FUNC(crypt, AC_DEFINE(CIRCLE_CRYPT),
     [AC_CHECK_LIB(crypt, crypt, AC_DEFINE(CIRCLE_CRYPT) CRYPTLIB="-lcrypt")]
     )
 
+AC_CHECK_LIB(python2.3, Py_Initialize, AC_DEFINE(HAVE_PYTHON) PYTHONLIB="-lpython2.3",
+   [AC_CHECK_LIB(python2.2, Py_Initialize, AC_DEFINE(HAVE_PYTHON) PYTHONLIB="-lpython2.2")])
+
 dnl Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
@@ -95,6 +103,18 @@ AC_CHECK_HEADERS(limits.h sys/time.h sys/select.h sys/types.h unistd.h)
 AC_CHECK_HEADERS(memory.h crypt.h assert.h arpa/telnet.h arpa/inet.h)
 AC_CHECK_HEADERS(sys/stat.h sys/socket.h sys/resource.h netinet/in.h netdb.h)
 AC_CHECK_HEADERS(signal.h sys/uio.h mcheck.h)
+
+AC_ARG_WITH(pythonprefix,
+	    [  --with-pythonprefix ARG  Specify the python base path],
+	     [if test "$withval" = "yes" ; then
+	      AC_MSG_ERROR([Must specify a path for --with-pyprefix])
+	      else
+		      PY_PREFIX="$withval"
+	      fi],
+	      [PY_PREFIX="/usr/include"])
+AC_SUBST(PY_PREFIX)
+		 
+AC_CHECK_HEADER(python2.3/Python.h, [PY_INCLUDE="-I$PY_PREFIX/python2.3"])
 
 AC_UNSAFE_CRYPT
 

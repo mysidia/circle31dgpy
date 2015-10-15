@@ -9,6 +9,13 @@
 *  $Revision: 3.6 $
 **************************************************************************/
 
+#ifndef __dgscripts_h__
+#define __dgscripts_h__
+
+#ifndef HAVE_DGSCRIPT
+#define HAVE_DGSCRIPT
+#endif
+
 #define DG_SCRIPT_VERSION "DG Scripts Version 0.99 Patch Level 11   07/03"
 
 
@@ -328,3 +335,4 @@ typedef struct room_data room_data;
 typedef struct obj_data obj_data;
 typedef struct trig_data trig_data;
 typedef struct char_data char_data;
+#endif

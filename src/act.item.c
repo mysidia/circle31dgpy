@@ -20,7 +20,7 @@
 #include "db.h"
 #include "spells.h"
 #include "constants.h"
-#include "dg_scripts.h"
+#include "genscript.h"
 #include "oasis.h"
 
 /* local functions */
@@ -60,7 +60,7 @@ void perform_put(struct char_data *ch, struct obj_data *obj,
 		      struct obj_data *cont)
 {
 
-  if (!drop_otrigger(obj, ch))
+  if (!script_drop_o_trigger(&obj, &ch))
     return;
 
   if (!obj) /* object might be extracted by drop_otrigger */
@@ -212,7 +212,7 @@ void perform_get_from_container(struct char_data *ch, struct obj_data *obj,
   if (mode == FIND_OBJ_INV || can_take_obj(ch, obj)) {
     if (IS_CARRYING_N(ch) >= CAN_CARRY_N(ch))
       act("$p: you can't hold any more items.", FALSE, ch, obj, 0, TO_CHAR);
-    else if (get_otrigger(obj, ch) && (obj)) { /* obj may be purged */
+    else if (script_get_o_trigger(&obj, &ch) && (obj)) { /* obj may be purged */
       obj_from_obj(obj);
       obj_to_char(obj, ch);
       act("You get $p from $P.", FALSE, ch, obj, cont, TO_CHAR);
@@ -277,7 +277,7 @@ void get_from_container(struct char_data *ch, struct obj_data *cont,
 int perform_get_from_room(struct char_data *ch, struct obj_data *obj)
 {
   if (can_take_obj(ch, obj) &&
-      get_otrigger(obj, ch) &&
+      script_get_o_trigger(&obj, &ch) &&
       (obj)) { /* obj may be purged by get_otrigger */
     obj_from_room(obj);
     obj_to_char(obj, ch);
@@ -426,7 +426,7 @@ void perform_drop_gold(struct char_data *ch, int amount,
       } else {
         char buf[MAX_STRING_LENGTH];
 
-        if (!drop_wtrigger(obj, ch) && (obj)) { /* obj may be purged */
+        if (!script_drop_trigger(&obj, &ch) && (obj)) { /* obj may be purged */
           extract_obj(obj);
           return;
         }
@@ -459,10 +459,10 @@ int perform_drop(struct char_data *ch, struct obj_data *obj,
   char buf[MAX_STRING_LENGTH];
   int value;
 
-  if (!drop_otrigger(obj, ch))
+  if (!script_drop_o_trigger(&obj, &ch))
     return 0;
   
-  if ((mode == SCMD_DROP) && !drop_wtrigger(obj, ch))
+  if ((mode == SCMD_DROP) && !script_drop_trigger(&obj, &ch))
     return 0;
 
   if (!obj) /* obj may be purged */
@@ -624,9 +624,12 @@ ACMD(do_drop)
 void perform_give(struct char_data *ch, struct char_data *vict,
 		       struct obj_data *obj)
 {
-  if (!give_otrigger(obj, ch, vict) || !obj)  /* obj might be purged */
+  if (!script_give_o_trigger(&obj, &ch, &vict) || !obj)  /* obj might be purged */
     return;
-  if (!receive_mtrigger(vict, ch, obj) || !obj)  /* obj might be purged */
+  if (!check_mob_hooks(HOOK_RECEIVED_ITEM, ch_script_cont(vict), 
+		       ch, obj_to_param(obj), SNull))
+    return;
+  if (!obj)  /* obj might be purged */
     return;
 
   if (OBJ_FLAGGED(obj, ITEM_NODROP)) {
@@ -692,7 +695,8 @@ void perform_give_gold(struct char_data *ch, struct char_data *vict,
     GET_GOLD(ch) -= amount;
   GET_GOLD(vict) += amount;
 
-  bribe_mtrigger(vict, ch, amount);
+  check_mob_hooks(HOOK_GIVEN_CASH, ch_script_cont(vict), ch,
+		  int_to_param(amount), SNull );
 }
 
 
@@ -973,7 +977,7 @@ ACMD(do_eat)
   }
   if (subcmd == SCMD_TASTE && ((GET_OBJ_TYPE(food) == ITEM_DRINKCON) ||
 			       (GET_OBJ_TYPE(food) == ITEM_FOUNTAIN))) {
-    do_drink(ch, argument, 0, SCMD_SIP);
+    do_drink(ch, argument, 0, cmd_flags, SCMD_SIP);
     return;
   }
   if ((GET_OBJ_TYPE(food) != ITEM_FOOD) && (GET_LEVEL(ch) < LVL_GOD)) {
@@ -1271,7 +1275,7 @@ void perform_wear(struct char_data *ch, struct obj_data *obj, int where)
   }
 
   /* See if a trigger disallows it */
-  if (!wear_otrigger(obj, ch, where) || (obj->carried_by != ch))
+  if (!script_wear_o_trigger(&obj, &ch, where) || (obj->carried_by != ch))
     return;
 
   wear_message(ch, obj, where);
@@ -1450,7 +1454,7 @@ void perform_remove(struct char_data *ch, int pos)
   else if (IS_CARRYING_N(ch) >= CAN_CARRY_N(ch))
     act("$p: you can't carry that many items!", FALSE, ch, obj, 0, TO_CHAR);
   else {
-    if (!remove_otrigger(obj, ch))
+    if (!script_remove_o_trigger(&obj, &ch))
       return;
 
     obj_to_char(unequip_char(ch, pos), ch);

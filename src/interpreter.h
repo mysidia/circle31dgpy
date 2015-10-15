@@ -8,16 +8,49 @@
 *  CircleMUD is based on DikuMUD, Copyright (C) 1990, 1991.               *
 ************************************************************************ */
 
+#include "genscript.h"
+
 #define ACMD(name)  \
-   void name(struct char_data *ch, char *argument, int cmd, int subcmd)
+   void name(struct char_data *ch, char *argument, CMD_DATA* commandp, int cmd_flags, int subcmd)
 
+#define CMD_NAME (commandp->name)
+#define CMD_IS(cmd_name) (commandp && !strcmp(cmd_name, commandp->name))
+#define IS_MOVE(cmdnum) (commandp && commandp->native_callfun == do_move)
+
+typedef struct command_info  CMD_DATA;
+typedef void CMD_FUN(struct char_data *ch, char *argument, CMD_DATA* cmd, int cmd_flags, int subcmd);
+
+#define CHECK_MOB_CALL(ff) \
+	(IS_SET(ff, CMDPASS_ORDER) || \
+	 (IS_SET(ff, CMDPASS_COMM)) || \
+	 (IS_SET(ff, CMDPASS_FORCE) && !IS_SET(ff, CMDPASS_IMPFORCE)))
+
+#define CMDPASS_ORDER_INDIV (1 << 0)
+#define CMDPASS_ORDER_FOLLOWERS (1 << 1)
+#define CMDPASS_FORCE_INDIV (1 << 2)
+#define CMDPASS_FORCE_ROOM  (1 << 3)
+#define CMDPASS_FORCE_ALL   (1 << 4)
+#define CMDPASS_IMPFORCE    (1 << 5)
+#define CMDPASS_SCRIPTFORCE (1 << 6)
+#define CMDPASS_COMM        (1 << 7)
+#define CMDPASS_INALIAS     (1 << 8)
+#define CMDPASS_AT          (1 << 9)
+
+#define CMDPASS_FORCE (CMDPASS_FORCE_INDIV | CMDPASS_FORCE_ROOM | \
+		       CMDPASS_FORCE_ALL | CMDPASS_SCRIPTFORCE)
+#define CMDPASS_ORDER (CMDPASS_ORDER_INDIV | CMDPASS_ORDER_FOLLOWERS)
+
+#define CMD_NOABBREV (1 << 0)
+#define CMD_FIXED    (1 << 1)
+
+
+
+#ifndef SWIG
 ACMD(do_move);
+#endif
+		   
 
-#define CMD_NAME (cmd_info[cmd].command)
-#define CMD_IS(cmd_name) (!strcmp(cmd_name, cmd_info[cmd].command))
-#define IS_MOVE(cmdnum) (cmd_info[cmdnum].command_pointer == do_move)
-
-void	command_interpreter(struct char_data *ch, char *argument);
+void    command_interpreter(struct char_data *ch, char *argument, int cmd_flags);
 int	search_block(char *arg, const char **list, int exact);
 char	lower( char c );
 char	*one_argument(char *argument, char *first_arg);
@@ -29,29 +62,63 @@ void	half_chop(char *string, char *arg1, char *arg2);
 void	nanny(struct descriptor_data *d, char *arg);
 int	is_abbrev(const char *arg1, const char *arg2);
 int	is_number(const char *str);
-int	find_command(const char *command);
+CMD_DATA* find_command(const char *command);
 void	skip_spaces(char **string);
 char	*delete_doubledollar(char *string);
+bool    insert_command(struct command_info*, t_language);
+void    clear_commands(t_language lang);
+void    deregister_command_predicate(bool (* dereg_predicate)(CMD_DATA *, void*), void *data,
+                                     t_language lang);
+void deregister_command_byname(const char* command_name, t_language lang);
+	
+
 
 /* for compatibility with 2.20: */
 #define argument_interpreter(a, b, c) two_arguments(a, b, c)
 
+/*
+ * A structure for keeping track of registered python commands
+ */
+struct command_info
+{
+	unsigned int hashcode;
+	unsigned int number;
+	char *name;                 /* Name of the command */
+	int minimum_position;
+#ifdef HAVE_PYTHON
+	PyObject* py_callfun;
+#endif
+	CMD_FUN *native_callfun;
 
-struct command_info {
-   const char *command;
-   byte minimum_position;
-   void	(*command_pointer)
-	   (struct char_data *ch, char *argument, int cmd, int subcmd);
-   sh_int minimum_level;
-   int	subcmd;
+	int minimum_level;
+	int subcmd, flags;
+	int priority, override;
+	t_language language;
+#ifndef SWIG
+	LIST_ENTRY(command_info)  cmd_lst;
+	LIST_ENTRY(command_info)  cmd_sorted_lst;
+#endif
 };
+
+LIST_HEAD(_command_head, command_info);
+extern struct _command_head cmd_hash[256];
+
+
+#ifdef HAVE_PYTHON
+int py_command_execute(struct char_data* ch, char* arg, char* text,
+	 struct command_info* cmd, int subcmd, int override);
+#endif
+
+extern unsigned int hash_command(const char* cmd);
+	
+
 
 /*
  * Necessary for CMD_IS macro.  Borland needs the structure defined first
  * so it has been moved down here.
  */
 #ifndef __INTERPRETER_C__
-extern const struct command_info cmd_info[];
+/* extern const struct command_info cmd_info[]; */
 #endif
 
 /*

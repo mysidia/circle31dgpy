@@ -18,11 +18,15 @@ extern FILE *logfile;
 
 #define READ_SIZE	256
 
+#ifndef SWIG
 /* public functions in utils.c */
 void	basic_mud_log(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 void	basic_mud_vlog(const char *format, va_list args);
+void	mudlog(int type, int level, int file, const char *str, ...) __attribute__ ((format (printf,
+				4, 5)));
+#endif
+
 int	touch(const char *path);
-void	mudlog(int type, int level, int file, const char *str, ...) __attribute__ ((format (printf, 4, 5)));
 void	log_death_trap(struct char_data *ch);
 int	rand_number(int from, int to);
 int	dice(int number, int size);
@@ -194,7 +198,7 @@ void	update_pos(struct char_data *victim);
  * for it, 'wimpy' would be an extremely bad thing for a mob to do, as an
  * example.  If you really couldn't care less, change this to a '#if 0'.
  */
-#if 1
+#if !defined(SWIG) && 1
 /* Subtle bug in the '#var', but works well for now. */
 #define CHECK_PLAYER_SPECIAL(ch, var) \
 	(*(((ch)->player_specials == &dummy_mob) ? (log("SYSERR: Mob using '"#var"' at %s:%d.", __FILE__, __LINE__), &(var)) : &(var)))
@@ -268,6 +272,10 @@ void	update_pos(struct char_data *victim);
 #define GET_LEVEL(ch)   ((ch)->player.level)
 #define GET_PASSWD(ch)	((ch)->player.passwd)
 #define GET_PFILEPOS(ch)((ch)->pfilepos)
+#define GET_CHAR_TIMES(ch) ((ch)->player.time)
+#define GET_LOGIN_TIME(ch) ((ch)->player.time.logon)
+#define GET_PLAYED_TIME(ch) ((ch)->player.time.played)
+		
 
 /*
  * I wonder if this definition of GET_REAL_LEVEL should be the definition

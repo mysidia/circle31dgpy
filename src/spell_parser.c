@@ -20,7 +20,7 @@
 #include "handler.h"
 #include "comm.h"
 #include "db.h"
-#include "dg_scripts.h"
+#include "genscript.h"
 
 #define SINFO spell_info[spellnum]
 
@@ -206,16 +206,12 @@ int find_skill_num(char *name)
 int call_magic(struct char_data *caster, struct char_data *cvict,
 	     struct obj_data *ovict, int spellnum, int level, int casttype)
 {
-  int savetype;
+  int savetype, result;
 
   if (spellnum < 1 || spellnum > TOP_SPELL_DEFINE)
     return (0);
 
-  if (!cast_wtrigger(caster, cvict, ovict, spellnum))
-    return 0;
-  if (!cast_otrigger(caster, ovict, spellnum))
-    return 0;
-  if (!cast_mtrigger(caster, cvict, spellnum))
+  if (!script_cast_trigger(caster, cvict, ovict, spellnum))
     return 0;
 
   if (ROOM_FLAGGED(IN_ROOM(caster), ROOM_NOMAGIC)) {
@@ -245,6 +241,15 @@ int call_magic(struct char_data *caster, struct char_data *cvict,
     break;
   }
 
+  result = check_cast_hooks(HOOK_CAST, caster, spellnum, level, casttype,
+		            &cvict, &ovict, SNull);
+		  
+  if (IS_SET(result, SCRIPT_RET_CANCEL)
+      || IS_SET(result, SCRIPT_RET_ACTOR_DEAD)
+      || IS_SET(result, SCRIPT_RET_SUBJECT_DEAD)
+      || IS_SET(result, SCRIPT_RET_OBJECT_DEAD)) {
+	  return -1;
+  }
 
   if (IS_SET(SINFO.routines, MAG_DAMAGE))
     if (mag_damage(level, caster, cvict, spellnum, savetype) == -1)

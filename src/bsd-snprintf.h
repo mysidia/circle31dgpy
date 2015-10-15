@@ -35,7 +35,7 @@
  * --- 8< --- OpenSSH LICENSE --- 8< ---
  */
 
-/* $Id: bsd-snprintf.h,v 1.1 2002/04/16 02:22:12 greerga Exp $ */
+/* $Id: bsd-snprintf.h,v 1.1 2004/02/29 08:22:05 mysidia Exp $ */
 
 #ifndef _BSD_SNPRINTF_H
 #define _BSD_SNPRINTF_H

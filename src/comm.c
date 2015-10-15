@@ -61,8 +61,8 @@
 #include "house.h"
 #include "oasis.h"
 #include "genolc.h"
-#include "dg_scripts.h"
 #include "dg_event.h"
+#include "genscript.h"
 
 #ifdef HAVE_ARPA_TELNET_H
 #include <arpa/telnet.h>
@@ -164,7 +164,7 @@ void free_social_messages(void);
 void free_mail_index(void);
 void Free_Invalid_List(void);
 void load_config(void);
-
+	
 #ifdef __CXREF__
 #undef FD_ZERO
 #undef FD_SET
@@ -761,11 +761,16 @@ void game_loop(socket_t mother_desc)
       else if (STATE(d) != CON_PLAYING) /* In menus, etc. */
 	nanny(d, comm);
       else {			/* else: we're playing normally. */
+	 int cmd_flags = CMDPASS_COMM;
+	 
 	if (aliased)		/* To prevent recursive aliases. */
 	  d->has_prompt = TRUE;	/* To get newline before next cmd output. */
 	else if (perform_alias(d, comm, sizeof(comm)))    /* Run it through aliasing system */
 	  get_from_q(&d->input, comm, &aliased);
-	command_interpreter(d->character, comm); /* Send it to interpreter */
+
+	if (aliased)
+		cmd_flags |= CMDPASS_INALIAS;
+	command_interpreter(d->character, comm, cmd_flags); /* Send it to interpreter */
       }
     }
 
@@ -846,9 +851,8 @@ void heartbeat(int heart_pulse)
 
   event_process();
 
-  if (!(heart_pulse % PULSE_DG_SCRIPT))
-    script_trigger_check();
-
+  script_pulse(heart_pulse);
+      	
   if (!(heart_pulse % PULSE_ZONE))
     zone_update();
 
@@ -2440,7 +2444,7 @@ void perform_act(const char *orig, struct char_data *ch, struct obj_data *obj,
   write_to_output(to->desc, "%s", CAP(lbuf));
 
   if ((IS_NPC(to) && dg_act_check) && (to != ch))
-    act_mtrigger(to, lbuf, ch, dg_victim, obj, dg_target, dg_arg);
+    script_act_trigger(to, lbuf, ch, dg_victim, obj, dg_target, dg_arg);
 }
 
 
