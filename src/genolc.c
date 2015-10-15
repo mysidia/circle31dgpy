@@ -23,12 +23,19 @@
 #include "genshp.h"
 #include "genzon.h"
 #include "genobj.h"
+#include "dg_olc.h"
+#include "constants.h"
 
 extern struct zone_data *zone_table;
 extern zone_rnum top_of_zone_table;
 extern struct room_data *world;
 extern struct char_data *mob_proto;
 extern struct index_data *mob_index;
+extern struct index_data *obj_index;
+extern struct shop_data *shop_index;
+extern struct index_data **trig_index;
+extern int top_shop;
+extern int top_of_trigt;
 
 int save_config( sh_int nowhere );        /* Exported from cedit.c */
 
@@ -63,14 +70,10 @@ struct {
 
 /* -------------------------------------------------------------------------- */
 
-int genolc_checkstring(struct descriptor_data *d, const char *arg)
+int genolc_checkstring(struct descriptor_data *d, char *arg)
 {
-  char gcbuf[128];
-  if (strchr(arg, STRING_TERMINATOR)) {
-    sprintf(gcbuf, "Sorry, you cannot use '%c' in your descriptions.\r\n", STRING_TERMINATOR);
-    write_to_output(d, "%s", gcbuf);
-    return FALSE;
-  }
+  smash_tilde(arg);
+
   return TRUE;
 }
 
@@ -123,8 +126,8 @@ void copy_ex_descriptions(struct extra_descr_data **to, struct extra_descr_data 
   wpos = *to;
 
   for (; from; from = from->next, wpos = wpos->next) {
-    wpos->keyword = strdup(from->keyword);
-    wpos->description = strdup(from->description);
+    wpos->keyword = str_udup(from->keyword);
+    wpos->description = str_udup(from->description);
     if (from->next)
       CREATE(wpos->next, struct extra_descr_data, 1);
   }

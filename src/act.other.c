@@ -23,6 +23,7 @@
 #include "screen.h"
 #include "house.h"
 #include "constants.h"
+#include "dg_scripts.h"
 
 /* extern variables */
 extern struct spell_info_type spell_info[];
@@ -35,7 +36,7 @@ void write_aliases(struct char_data *ch);
 void perform_immort_vis(struct char_data *ch);
 SPECIAL(shop_keeper);
 ACMD(do_gen_comm);
-void die(struct char_data *ch);
+void die(struct char_data *ch, struct char_data * killer);
 void Crash_rentsave(struct char_data *ch, int cost);
 
 /* local functions */
@@ -72,7 +73,7 @@ ACMD(do_quit)
     send_to_char(ch, "No way!  You're fighting for your life!\r\n");
   else if (GET_POS(ch) < POS_STUNNED) {
     send_to_char(ch, "You die before your time...\r\n");
-    die(ch);
+    die(ch, NULL);
   } else {
     act("$n has left the game.", TRUE, ch, 0, 0, TO_ROOM);
     mudlog(NRM, MAX(LVL_IMMORT, GET_INVIS_LEV(ch)), TRUE, "%s has quit the game.", GET_NAME(ch));
@@ -251,6 +252,11 @@ ACMD(do_steal)
 	  send_to_char(ch, "Steal the equipment now?  Impossible!\r\n");
 	  return;
 	} else {
+          if (!give_otrigger(obj, vict, ch) || !obj ||  /* obj might be purged */
+              !receive_mtrigger(ch, vict, obj) || !obj) {  /* obj might be purged */
+            send_to_char(ch, "Impossible!\r\n");
+            return;
+          }
 	  act("You unequip $p and steal it.", FALSE, ch, obj, 0, TO_CHAR);
 	  act("$n steals $p from $N.", FALSE, ch, obj, vict, TO_NOTVICT);
 	  obj_to_char(unequip_char(vict, eq_pos), ch);
@@ -267,6 +273,11 @@ ACMD(do_steal)
 	act("$n tries to steal something from $N.", TRUE, ch, 0, vict, TO_NOTVICT);
       } else {			/* Steal the item */
 	if (IS_CARRYING_N(ch) + 1 < CAN_CARRY_N(ch)) {
+          if (!give_otrigger(obj, vict, ch) || !obj ||  /* obj might be purged */
+              !receive_mtrigger(ch, vict, obj) || !obj) {  /* obj might be purged */
+            send_to_char(ch, "Impossible!\r\n");
+            return;
+          }
 	  if (IS_CARRYING_W(ch) + GET_OBJ_WEIGHT(obj) < CAN_CARRY_W(ch)) {
 	    obj_from_char(obj);
 	    obj_to_char(obj, ch);
@@ -876,7 +887,9 @@ ACMD(do_gen_tog)
     {"Autoexits disabled.\r\n",
     "Autoexits enabled.\r\n"},
     {"Will no longer track through doors.\r\n",
-    "Will now track through doors.\r\n"}
+    "Will now track through doors.\r\n"},
+    {"Will no longer clear screen in OLC.\r\n",
+    "Will now clear screen in OLC.\r\n"}
   };
 
 
@@ -934,6 +947,9 @@ ACMD(do_gen_tog)
     break;
   case SCMD_TRACK:
     result = (CONFIG_TRACK_T_DOORS = !CONFIG_TRACK_T_DOORS);
+    break;
+  case SCMD_CLS:
+    result = PRF_TOG_CHK(ch, PRF_CLS);
     break;
   default:
     log("SYSERR: Unknown subcmd %d in do_gen_toggle.", subcmd);

@@ -15,6 +15,7 @@
 #include "genolc.h"
 #include "genmob.h"
 #include "genzon.h"
+#include "dg_olc.h"
 
 int update_mobile_strings(struct char_data *t, struct char_data *f);
 void check_mobile_strings(struct char_data *mob);
@@ -254,9 +255,11 @@ int free_mobile(struct char_data *mob)
   /*
    * Non-prototyped mobile.  Also known as new mobiles.
    */
-  if ((i = GET_MOB_RNUM(mob)) == NOBODY)
+  if ((i = GET_MOB_RNUM(mob)) == NOBODY) {
     free_mobile_strings(mob);
-  else {	/* Prototyped mobile. */
+    /* free script proto list */
+    free_proto_script(mob, MOB_TRIGGER);
+   } else {	/* Prototyped mobile. */
     if (mob->player.name && mob->player.name != mob_proto[i].player.name)
       free(mob->player.name);
     if (mob->player.title && mob->player.title != mob_proto[i].player.title)
@@ -267,9 +270,16 @@ int free_mobile(struct char_data *mob)
       free(mob->player.long_descr);
     if (mob->player.description && mob->player.description != mob_proto[i].player.description)
       free(mob->player.description);
+    /* free script proto list if it's not the prototype */
+    if (mob->proto_script && mob->proto_script != mob_proto[i].proto_script)
+      free_proto_script(mob, MOB_TRIGGER);
   }
   while (mob->affected)
     affect_remove(mob, mob->affected);
+
+  /* free any assigned scripts */
+  if (SCRIPT(mob))
+    extract_script(mob, MOB_TRIGGER);
 
   free(mob);
   return TRUE;
@@ -405,6 +415,9 @@ int write_mobile_record(mob_vnum mvnum, struct char_data *mob, FILE *fd)
 
   if (write_mobile_espec(mvnum, mob, fd) < 0)
     log("SYSERR: GenOLC: Error writing E-specs for mobile #%d.", mvnum);
+
+  script_save_to_disk(fd, mob, MOB_TRIGGER);
+
 
 #if CONFIG_GENOLC_MOBPROG
   if (write_mobile_mobprog(mvnum, mob, fd) < 0)

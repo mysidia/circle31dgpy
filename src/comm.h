@@ -28,6 +28,7 @@ void	act(const char *str, int hide_invisible, struct char_data *ch,
 #define TO_NOTVICT	3
 #define TO_CHAR		4
 #define TO_SLEEP	128	/* to char, even if sleeping */
+#define DG_NO_TRIG      256     /* don't check act trigger   */
 
 /* I/O functions */
 void	write_to_q(const char *txt, struct txt_q *queue, int aliased);

@@ -19,6 +19,8 @@
 #include "genzon.h"
 #include "oasis.h"
 #include "improved-edit.h"
+#include "dg_olc.h"
+#include "constants.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -162,6 +164,9 @@ void redit_setup_new(struct descriptor_data *d)
   OLC_ROOM(d)->name = strdup("An unfinished room");
   OLC_ROOM(d)->description = strdup("You are in an unfinished room.\r\n");
   OLC_ROOM(d)->number = NOWHERE;
+  OLC_ITEM_TYPE(d) = WLD_TRIGGER;
+  OLC_ROOM(d)->proto_script = OLC_SCRIPT(d) = NULL;
+
   redit_disp_menu(d);
   OLC_VAL(d) = 0;
 }
@@ -230,6 +235,12 @@ void redit_setup_existing(struct descriptor_data *d, int real_num)
    */
   OLC_ROOM(d) = room;
   OLC_VAL(d) = 0;
+  OLC_ITEM_TYPE(d) = WLD_TRIGGER;
+
+  dg_olc_script_copy(d);
+  room->proto_script = NULL;
+  SCRIPT(room) = NULL; 
+
   redit_disp_menu(d);
 }
 
@@ -253,6 +264,16 @@ void redit_save_internally(struct descriptor_data *d)
     return;
   }
 
+  /* Update triggers */  
+  /* Free old proto list */
+  if (world[room_num].proto_script &&
+      world[room_num].proto_script != OLC_SCRIPT(d)) 
+    free_proto_script(&world[room_num], WLD_TRIGGER); 
+       
+  world[room_num].proto_script = OLC_SCRIPT(d);
+  assign_triggers(&world[room_num], WLD_TRIGGER);
+  /* end trigger update */  
+  
   /* Don't adjust numbers on a room update. */
   if (!new_room)
     return;
@@ -267,6 +288,8 @@ void redit_save_internally(struct descriptor_data *d)
         switch (OLC_ZONE(dsc)->cmd[j].command) {
           case 'O':
           case 'M':
+          case 'T':
+          case 'V':
             OLC_ZONE(dsc)->cmd[j].arg3 += (OLC_ZONE(dsc)->cmd[j].arg3 >= room_num);
             break;
           case 'D':
@@ -451,6 +474,7 @@ void redit_disp_menu(struct descriptor_data *d)
 	  "%sA%s) Exit down   : %s%d\r\n"
 	  "%sB%s) Extra descriptions menu\r\n"
 	  "%sD%s) Delete Room\r\n"
+	  "%sS%s) Script      : %s%s\r\n"
 	  "%sQ%s) Quit\r\n"
 	  "Enter choice : ",
 
@@ -480,6 +504,7 @@ void redit_disp_menu(struct descriptor_data *d)
 	  world[room->dir_option[DOWN]->to_room].number : -1,
 	  grn, nrm,
           grn, nrm,
+          grn, nrm, cyn, OLC_SCRIPT(d) ? "Set." : "Not Set.",
           grn, nrm
 	  );
 
@@ -596,6 +621,11 @@ void redit_parse(struct descriptor_data *d, char *arg)
       OLC_MODE(d) = REDIT_DELETE;
       break;
       
+    case 's':
+    case 'S':
+      OLC_SCRIPT_EDIT_MODE(d) = SCRIPT_MAIN_MENU;
+      dg_script_menu(d);
+      return;
     default:
       write_to_output(d, "Invalid choice!");
       redit_disp_menu(d);
@@ -603,6 +633,11 @@ void redit_parse(struct descriptor_data *d, char *arg)
     }
     return;
     
+
+  case OLC_SCRIPT_EDIT:
+    if (dg_script_edit_parse(d, arg)) return;
+    break;
+
   case REDIT_NAME:
     if (!genolc_checkstring(d, arg))
       break;

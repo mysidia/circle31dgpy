@@ -20,7 +20,7 @@
 #include "handler.h"
 #include "comm.h"
 #include "db.h"
-
+#include "dg_scripts.h"
 
 #define SINFO spell_info[spellnum]
 
@@ -210,6 +210,13 @@ int call_magic(struct char_data *caster, struct char_data *cvict,
 
   if (spellnum < 1 || spellnum > TOP_SPELL_DEFINE)
     return (0);
+
+  if (!cast_wtrigger(caster, cvict, ovict, spellnum))
+    return 0;
+  if (!cast_otrigger(caster, ovict, spellnum))
+    return 0;
+  if (!cast_mtrigger(caster, cvict, spellnum))
+    return 0;
 
   if (ROOM_FLAGGED(IN_ROOM(caster), ROOM_NOMAGIC)) {
     send_to_char(caster, "Your magic fizzles out and dies.\r\n");
@@ -987,6 +994,11 @@ void mag_assign_spells(void)
 	NULL);
 
   spello(SPELL_LIGHTNING_BREATH, "lightning breath", 0, 0, 0, POS_SITTING,
+	TAR_IGNORE, TRUE, 0,
+	NULL);
+
+  /* you might want to name this one something more fitting to your theme -Welcor*/
+  spello(SPELL_DG_AFFECT, "Script-inflicted", 0, 0, 0, POS_SITTING,
 	TAR_IGNORE, TRUE, 0,
 	NULL);
 

@@ -21,6 +21,7 @@
 #include "spells.h"
 #include "screen.h"
 #include "constants.h"
+#include "dg_scripts.h"
 
 /* Structures */
 struct char_data *combat_list = NULL;	/* head of l-list of fighting chars */
@@ -47,8 +48,8 @@ void check_killer(struct char_data *ch, struct char_data *vict);
 void make_corpse(struct char_data *ch);
 void change_alignment(struct char_data *ch, struct char_data *victim);
 void death_cry(struct char_data *ch);
-void raw_kill(struct char_data *ch);
-void die(struct char_data *ch);
+void raw_kill(struct char_data * ch, struct char_data * killer);
+void die(struct char_data * ch, struct char_data * killer);
 void group_gain(struct char_data *ch, struct char_data *victim);
 void solo_gain(struct char_data *ch, struct char_data *victim);
 char *replace_string(const char *str, const char *weapon_singular, const char *weapon_plural);
@@ -304,8 +305,10 @@ void make_corpse(struct char_data *ch)
 
   /* transfer character's equipment to the corpse */
   for (i = 0; i < NUM_WEARS; i++)
-    if (GET_EQ(ch, i))
+    if (GET_EQ(ch, i)) {
+      remove_otrigger(GET_EQ(ch, i), ch);
       obj_to_obj(unequip_char(ch, i), corpse);
+    }
 
   /* transfer gold */
   if (GET_GOLD(ch) > 0) {
@@ -355,7 +358,7 @@ void death_cry(struct char_data *ch)
 
 
 
-void raw_kill(struct char_data *ch)
+void raw_kill(struct char_data * ch, struct char_data * killer)
 {
   if (FIGHTING(ch))
     stop_fighting(ch);
@@ -363,7 +366,16 @@ void raw_kill(struct char_data *ch)
   while (ch->affected)
     affect_remove(ch, ch->affected);
 
+  /* To make ordinary commands work in scripts.  welcor*/  
+  GET_POS(ch) = POS_STANDING; 
+  
+  if (killer) {
+    if (death_mtrigger(ch, killer))
+      death_cry(ch);
+  } else
   death_cry(ch);
+
+  update_pos(ch);
 
   make_corpse(ch);
   extract_char(ch);
@@ -371,12 +383,12 @@ void raw_kill(struct char_data *ch)
 
 
 
-void die(struct char_data *ch)
+void die(struct char_data * ch, struct char_data * killer)
 {
   gain_exp(ch, -(GET_EXP(ch) / 2));
   if (!IS_NPC(ch))
     REMOVE_BIT(PLR_FLAGS(ch), PLR_KILLER | PLR_THIEF);
-  raw_kill(ch);
+  raw_kill(ch, killer);
 }
 
 
@@ -679,12 +691,13 @@ int damage(struct char_data *ch, struct char_data *victim, int dam, int attackty
 
     log("SYSERR: Attempt to damage corpse '%s' in room #%d by '%s'.",
 		GET_NAME(victim), GET_ROOM_VNUM(IN_ROOM(victim)), GET_NAME(ch));
-    die(victim);
+    die(victim, ch);
     return (-1);			/* -je, 7/7/92 */
   }
 
   /* peaceful rooms */
-  if (ch != victim && ROOM_FLAGGED(IN_ROOM(ch), ROOM_PEACEFUL)) {
+  if (ch->nr != real_mobile(DG_CASTER_PROXY) &&
+      ch != victim && ROOM_FLAGGED(ch->in_room, ROOM_PEACEFUL)) {
     send_to_char(ch, "This room just has such a peaceful, easy feeling...\r\n");
     return (0);
   }
@@ -827,7 +840,7 @@ int damage(struct char_data *ch, struct char_data *victim, int dam, int attackty
       if (MOB_FLAGGED(ch, MOB_MEMORY))
 	forget(ch, victim);
     }
-    die(victim);
+    die(victim, ch);
     return (-1);
   }
   return (dam);
@@ -862,6 +875,9 @@ void hit(struct char_data *ch, struct char_data *victim, int type)
 {
   struct obj_data *wielded = GET_EQ(ch, WEAR_WIELD);
   int w_type, victim_ac, calc_thaco, dam, diceroll;
+
+  /* check if the character has a fight trigger */
+  fight_mtrigger(ch);
 
   /* Do some sanity checking, in case someone flees, etc. */
   if (IN_ROOM(ch) != IN_ROOM(victim)) {
@@ -950,6 +966,9 @@ void hit(struct char_data *ch, struct char_data *victim, int type)
     else
       damage(ch, victim, dam, w_type);
   }
+
+  /* check if the victim has a hitprcnt trigger */
+  hitprcnt_mtrigger(victim);
 }
 
 

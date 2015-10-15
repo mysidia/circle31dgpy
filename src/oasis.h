@@ -125,6 +125,11 @@ struct oasis_olc_data {
   struct mob_prog_data *mprog;   /*                          */
   struct mob_prog_data *mprogl;  /*                          */
 #endif
+  struct trig_data *trig;
+  int script_mode;
+  int trigger_position;          
+  int item_type;                 
+  struct trig_proto_list *script; /* for assigning triggers in [r|o|m]edit*/
 };
 
 /*
@@ -149,6 +154,7 @@ extern const char *nrm, *grn, *cyn, *yel;
 #define OLC_SHOP(d) 	(OLC(d)->shop)		/* Shop structure.	*/
 #define OLC_DESC(d) 	(OLC(d)->desc)		/* Extra description.	*/
 #define OLC_CONFIG(d)	(OLC(d)->config)	/* Config structure.	*/
+#define OLC_TRIG(d)     (OLC(d)->trig)          /* Trigger structure.   */
 
 #if CONFIG_OASIS_MPROG
 #define OLC_MPROG(d)	(OLC(d)->mprog)		/* Temporary MobProg.	*/
@@ -238,6 +244,8 @@ extern const char *nrm, *grn, *cyn, *yel;
 #define ZEDIT_ZONE_RESET		13
 #define ZEDIT_CONFIRM_SAVESTRING	14
 #define ZEDIT_ZONE_BUILDERS		15
+#define ZEDIT_SARG1			20
+#define ZEDIT_SARG2			21
 
 /*
  * Submodes of MEDIT connectedness.
@@ -381,12 +389,18 @@ extern const char *nrm, *grn, *cyn, *yel;
 /*
  * Prototypes to keep.
  */
+#ifndef ACMD
+#define ACMD(name)  \
+   void name(struct char_data *ch, char *argument, int cmd, int subcmd)
+#endif
 void clear_screen(struct descriptor_data *);
 ACMD(do_oasis);
 
 /*
  * Prototypes, to be moved later.
  */
+ACMD(do_oasis_list);
+
 void medit_free_mobile(struct char_data *mob);
 void medit_setup_new(struct descriptor_data *d);
 void medit_setup_existing(struct descriptor_data *d, int rmob_num);
@@ -405,7 +419,6 @@ void medit_disp_menu(struct descriptor_data *d);
 void medit_parse(struct descriptor_data *d, char *arg);
 void medit_string_cleanup(struct descriptor_data *d, int terminator);
 ACMD(do_oasis_medit);
-ACMD(do_oasis_mlist);
 
 void oedit_setup_new(struct descriptor_data *d);
 void oedit_setup_existing(struct descriptor_data *d, int real_num);
@@ -430,7 +443,6 @@ void oedit_parse(struct descriptor_data *d, char *arg);
 void oedit_disp_perm_menu(struct descriptor_data *d);
 void oedit_string_cleanup(struct descriptor_data *d, int terminator);
 ACMD(do_oasis_oedit);
-ACMD(do_oasis_olist);
 
 void redit_string_cleanup(struct descriptor_data *d, int terminator);
 void redit_setup_new(struct descriptor_data *d);
@@ -446,7 +458,6 @@ void redit_disp_menu(struct descriptor_data *d);
 void redit_parse(struct descriptor_data *d, char *arg);
 void free_room(struct room_data *room);
 ACMD(do_oasis_redit);
-ACMD(do_oasis_rlist);
 
 void sedit_setup_new(struct descriptor_data *d);
 void sedit_setup_existing(struct descriptor_data *d, int rshop_num);
@@ -462,7 +473,6 @@ void sedit_types_menu(struct descriptor_data *d);
 void sedit_disp_menu(struct descriptor_data *d);
 void sedit_parse(struct descriptor_data *d, char *arg);
 ACMD(do_oasis_sedit);
-ACMD(do_oasis_slist);
 
 void zedit_setup(struct descriptor_data *d, int room_num);
 void zedit_new_zone(struct char_data *ch, zone_vnum vzone_num, room_vnum bottom, room_vnum top);
@@ -476,13 +486,18 @@ void zedit_disp_arg2(struct descriptor_data *d);
 void zedit_disp_arg3(struct descriptor_data *d);
 void zedit_parse(struct descriptor_data *d, char *arg);
 ACMD(do_oasis_zedit);
-ACMD(do_oasis_zlist);
 
 void cedit_setup(struct descriptor_data *d);
 void cedit_parse(struct descriptor_data *d, char *arg);
 void cedit_save_to_disk( void );
 void cedit_string_cleanup(struct descriptor_data *d, int terminator);
 ACMD(do_oasis_cedit);
+
+void trigedit_parse(struct descriptor_data *d, char *arg);
+void trigedit_setup_existing(struct descriptor_data *d, int rtrg_num);
+void trigedit_setup_new(struct descriptor_data *d);
+ACMD(do_oasis_trigedit);
+
 
 int free_strings(void *data, int type);
 void list_rooms(struct char_data *ch  , zone_rnum rnum, room_vnum vmin, room_vnum vmax);
@@ -493,4 +508,145 @@ void list_zones(struct char_data *ch);
 void print_zone(struct char_data *ch, zone_vnum vnum);
 int can_edit_zone(struct char_data *ch, zone_rnum rnum);
 
+#define CONTEXT_HELP_STRING "help"
+
+#define CONTEXT_OEDIT_MAIN_MENU              	1
+#define CONTEXT_OEDIT_EDIT_NAMELIST          	2
+#define CONTEXT_OEDIT_SHORTDESC              	3
+#define CONTEXT_OEDIT_LONGDESC               	4
+#define CONTEXT_OEDIT_ACTDESC                	5
+#define CONTEXT_OEDIT_TYPE                   	6
+#define CONTEXT_OEDIT_EXTRAS                 	7
+#define CONTEXT_OEDIT_WEAR                  	8
+#define CONTEXT_OEDIT_WEIGHT                	9
+#define CONTEXT_OEDIT_COST                  	10
+#define CONTEXT_OEDIT_COSTPERDAY            	11
+#define CONTEXT_OEDIT_TIMER                 	12
+#define CONTEXT_OEDIT_VALUE_1               	13
+#define CONTEXT_OEDIT_VALUE_2               	14
+#define CONTEXT_OEDIT_VALUE_3               	15
+#define CONTEXT_OEDIT_VALUE_4               	16
+#define CONTEXT_OEDIT_APPLY                 	17
+#define CONTEXT_OEDIT_APPLYMOD              	18
+#define CONTEXT_OEDIT_EXTRADESC_KEY         	19
+#define CONTEXT_OEDIT_CONFIRM_SAVEDB        	20
+#define CONTEXT_OEDIT_CONFIRM_SAVESTRING    	21
+#define CONTEXT_OEDIT_PROMPT_APPLY          	22
+#define CONTEXT_OEDIT_EXTRADESC_DESCRIPTION 	23
+#define CONTEXT_OEDIT_EXTRADESC_MENU        	24
+#define CONTEXT_OEDIT_LEVEL                 	25
+#define CONTEXT_OEDIT_PERM			26
+#define CONTEXT_REDIT_MAIN_MENU 		27
+#define CONTEXT_REDIT_NAME 			28
+#define CONTEXT_REDIT_DESC 			29
+#define CONTEXT_REDIT_FLAGS 			30
+#define CONTEXT_REDIT_SECTOR 			31
+#define CONTEXT_REDIT_EXIT_MENU 		32
+#define CONTEXT_REDIT_CONFIRM_SAVEDB 		33
+#define CONTEXT_REDIT_CONFIRM_SAVESTRING 	34
+#define CONTEXT_REDIT_EXIT_NUMBER 		35
+#define CONTEXT_REDIT_EXIT_DESCRIPTION 		36
+#define CONTEXT_REDIT_EXIT_KEYWORD 		37
+#define CONTEXT_REDIT_EXIT_KEY 			38
+#define CONTEXT_REDIT_EXIT_DOORFLAGS 		39
+#define CONTEXT_REDIT_EXTRADESC_MENU 		40
+#define CONTEXT_REDIT_EXTRADESC_KEY 		41
+#define CONTEXT_REDIT_EXTRADESC_DESCRIPTION 	42
+#define CONTEXT_ZEDIT_MAIN_MENU              	43
+#define CONTEXT_ZEDIT_DELETE_ENTRY		44
+#define CONTEXT_ZEDIT_NEW_ENTRY			45
+#define CONTEXT_ZEDIT_CHANGE_ENTRY		46
+#define CONTEXT_ZEDIT_COMMAND_TYPE		47
+#define CONTEXT_ZEDIT_IF_FLAG			48
+#define CONTEXT_ZEDIT_ARG1			49
+#define CONTEXT_ZEDIT_ARG2			50
+#define CONTEXT_ZEDIT_ARG3			51
+#define CONTEXT_ZEDIT_ZONE_NAME			52
+#define CONTEXT_ZEDIT_ZONE_LIFE			53
+#define CONTEXT_ZEDIT_ZONE_BOT			54
+#define CONTEXT_ZEDIT_ZONE_TOP			55
+#define CONTEXT_ZEDIT_ZONE_RESET		56
+#define CONTEXT_ZEDIT_CONFIRM_SAVESTRING	57
+#define CONTEXT_ZEDIT_SARG1			58
+#define CONTEXT_ZEDIT_SARG2			59
+#define CONTEXT_MEDIT_MAIN_MENU              	60
+#define CONTEXT_MEDIT_ALIAS			61
+#define CONTEXT_MEDIT_S_DESC			62
+#define CONTEXT_MEDIT_L_DESC			63
+#define CONTEXT_MEDIT_D_DESC			64
+#define CONTEXT_MEDIT_NPC_FLAGS			65
+#define CONTEXT_MEDIT_AFF_FLAGS			66
+#define CONTEXT_MEDIT_CONFIRM_SAVESTRING	67
+#define CONTEXT_MEDIT_SEX			68
+#define CONTEXT_MEDIT_HITROLL			69
+#define CONTEXT_MEDIT_DAMROLL			70
+#define CONTEXT_MEDIT_NDD			71
+#define CONTEXT_MEDIT_SDD			72
+#define CONTEXT_MEDIT_NUM_HP_DICE		73
+#define CONTEXT_MEDIT_SIZE_HP_DICE		74
+#define CONTEXT_MEDIT_ADD_HP			75
+#define CONTEXT_MEDIT_AC			76
+#define CONTEXT_MEDIT_EXP			77
+#define CONTEXT_MEDIT_GOLD			78
+#define CONTEXT_MEDIT_POS			79
+#define CONTEXT_MEDIT_DEFAULT_POS		80
+#define CONTEXT_MEDIT_ATTACK			81
+#define CONTEXT_MEDIT_LEVEL			82
+#define CONTEXT_MEDIT_ALIGNMENT			83
+#define CONTEXT_SEDIT_MAIN_MENU              	84
+#define CONTEXT_SEDIT_CONFIRM_SAVESTRING	85
+#define CONTEXT_SEDIT_NOITEM1			86
+#define CONTEXT_SEDIT_NOITEM2			87
+#define CONTEXT_SEDIT_NOCASH1			88
+#define CONTEXT_SEDIT_NOCASH2			89
+#define CONTEXT_SEDIT_NOBUY			90
+#define CONTEXT_SEDIT_BUY			91
+#define CONTEXT_SEDIT_SELL			92
+#define CONTEXT_SEDIT_PRODUCTS_MENU		93
+#define CONTEXT_SEDIT_ROOMS_MENU		94
+#define CONTEXT_SEDIT_NAMELIST_MENU		95
+#define CONTEXT_SEDIT_NAMELIST			96
+#define CONTEXT_SEDIT_OPEN1			97
+#define CONTEXT_SEDIT_OPEN2			98
+#define CONTEXT_SEDIT_CLOSE1			99
+#define CONTEXT_SEDIT_CLOSE2			100
+#define CONTEXT_SEDIT_KEEPER			101
+#define CONTEXT_SEDIT_BUY_PROFIT		102
+#define CONTEXT_SEDIT_SELL_PROFIT		103
+#define CONTEXT_SEDIT_TYPE_MENU			104
+#define CONTEXT_SEDIT_DELETE_TYPE		105
+#define CONTEXT_SEDIT_DELETE_PRODUCT		106
+#define CONTEXT_SEDIT_NEW_PRODUCT		107
+#define CONTEXT_SEDIT_DELETE_ROOM		108
+#define CONTEXT_SEDIT_NEW_ROOM			109
+#define CONTEXT_SEDIT_SHOP_FLAGS		110
+#define CONTEXT_SEDIT_NOTRADE			111
+#define CONTEXT_TRIGEDIT_MAIN_MENU              112
+#define CONTEXT_TRIGEDIT_TRIGTYPE               113
+#define CONTEXT_TRIGEDIT_CONFIRM_SAVESTRING	114
+#define CONTEXT_TRIGEDIT_NAME			115
+#define CONTEXT_TRIGEDIT_INTENDED		116
+#define CONTEXT_TRIGEDIT_TYPES			117
+#define CONTEXT_TRIGEDIT_COMMANDS		118
+#define CONTEXT_TRIGEDIT_NARG			119
+#define CONTEXT_TRIGEDIT_ARGUMENT		120
+#define CONTEXT_SCRIPT_MAIN_MENU		121
+#define CONTEXT_SCRIPT_NEW_TRIGGER		122
+#define CONTEXT_SCRIPT_DEL_TRIGGER		123
+
+/* includes number 0 */
+#define NUM_CONTEXTS 124
+
+/* Prototypes for the context sensitive help system */
+int find_context(struct descriptor_data *d);
+int find_context_oedit(struct descriptor_data *d);
+int find_context_redit(struct descriptor_data *d);
+int find_context_zedit(struct descriptor_data *d);
+int find_context_medit(struct descriptor_data *d);
+int find_context_sedit(struct descriptor_data *d);
+int find_context_trigedit(struct descriptor_data *d);
+int find_context_script_edit(struct descriptor_data *d);
+int context_help(struct descriptor_data *d, char *arg);
+void boot_context_help(void);
+void free_context_help(void);
 #endif // ifndef __GENOLC_C__

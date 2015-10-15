@@ -20,6 +20,7 @@
 #include "spells.h"
 #include "screen.h"
 #include "constants.h"
+#include "dg_scripts.h"
 
 /* extern variables */
 extern int top_of_helpt;
@@ -1026,7 +1027,7 @@ ACMD(do_who)
   send_to_char(ch, "Players\r\n-------\r\n");
 
   for (d = descriptor_list; d; d = d->next) {
-    if (STATE(d) != CON_PLAYING)
+    if (!IS_PLAYING(d))
       continue;
 
     if (d->original)
@@ -1072,11 +1073,17 @@ ACMD(do_who)
 	send_to_char(ch, " (mailing)");
       else if (PLR_FLAGGED(tch, PLR_WRITING))
 	send_to_char(ch, " (writing)");
+      if (d->olc)
+	send_to_char(ch, " (OLC)");
+      if (d->original)
+        send_to_char(ch, " (out of body)");
 
       if (PRF_FLAGGED(tch, PRF_DEAF))
 	send_to_char(ch, " (deaf)");
       if (PRF_FLAGGED(tch, PRF_NOTELL))
 	send_to_char(ch, " (notell)");
+      if (PRF_FLAGGED(tch, PRF_NOGOSS))
+	send_to_char(ch, " (nogos)");
       if (PRF_FLAGGED(tch, PRF_QUEST))
 	send_to_char(ch, " (quest)");
       if (PLR_FLAGGED(tch, PLR_THIEF))
@@ -1283,6 +1290,7 @@ ACMD(do_gen_ps)
     break;
   case SCMD_VERSION:
     send_to_char(ch, "%s\r\n", circlemud_version);
+    send_to_char(ch, "%s\r\n", DG_SCRIPT_VERSION);
     send_to_char(ch, "%s\r\n", oasisolc_version);
     break;
   case SCMD_WHOAMI:
@@ -1560,6 +1568,12 @@ ACMD(do_toggle)
     sprintf(buf2, "%-3.3d", GET_WIMP_LEV(ch));	/* sprintf: OK */
 
   if (GET_LEVEL(ch) >= LVL_IMMORT) {
+    send_to_char(ch,
+        "Clear Screen in OLC: %-3s\r\n",
+        ONOFF(PRF_FLAGGED(ch, PRF_CLS))
+    );
+
+    
     send_to_char(ch,
 	  "      No Hassle: %-3s    "
 	  "      Holylight: %-3s    "

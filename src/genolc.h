@@ -17,11 +17,10 @@
 
 #define CONFIG_GENOLC_MOBPROG	0
 
-#ifndef LVL_BUILDER
-#define LVL_BUILDER	LVL_GOD
-#endif
+/* from modify.c */
+void smash_tilde(char *str);
 
-int genolc_checkstring(struct descriptor_data *d, const char *arg);
+int genolc_checkstring(struct descriptor_data *d, char *arg);
 int remove_from_save_list(zone_vnum, int type);
 int add_to_save_list(zone_vnum, int type);
 int in_save_list(zone_vnum, int type);

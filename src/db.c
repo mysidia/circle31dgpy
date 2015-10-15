@@ -25,6 +25,8 @@
 #include "house.h"
 #include "constants.h"
 #include "oasis.h"
+#include "dg_scripts.h"
+#include "dg_event.h"
 
 /**************************************************************************
 *  declarations of most of the 'global' variables                         *
@@ -54,6 +56,13 @@ struct player_index_element *player_table = NULL;	/* index to plr file	 */
 FILE *player_fl = NULL;		/* file desc of player file	 */
 int top_of_p_table = 0;		/* ref to top of table		 */
 long top_idnum = 0;		/* highest idnum in use		 */
+
+struct index_data **trig_index; /* index table for triggers      */
+struct trig_data *trigger_list = NULL;  /* all attached triggers */
+int top_of_trigt = 0;           /* top of trigger index table    */
+long max_mob_id = MOB_ID_BASE;  /* for unique mob id's       */
+long max_obj_id = OBJ_ID_BASE;  /* for unique obj id's       */
+int dg_owner_purged;            /* For control of scripts */
 
 int no_mail = 0;		/* mail disabled?		 */
 int mini_mud = 0;		/* mini-mud mode?		 */
@@ -96,6 +105,7 @@ int check_object(struct obj_data *);
 void parse_room(FILE *fl, int virtual_nr);
 void parse_mobile(FILE *mob_f, int nr);
 char *parse_object(FILE *obj_f, int nr);
+void parse_trigger(FILE *fl, int virtual_nr);
 void load_zones(FILE *fl, char *zonename);
 void load_help(FILE *fl);
 void assign_mobiles(void);
@@ -119,6 +129,7 @@ void parse_espec(char *buf, int i, int nr);
 void parse_enhanced_mob(FILE *mob_f, int i, int nr);
 void get_one_line(FILE *fl, char *buf);
 void save_etext(struct char_data *ch);
+void save_char_vars(struct char_data *ch);
 void check_start_rooms(void);
 void renum_world(void);
 void renum_zone_table(void);
@@ -145,6 +156,8 @@ void prune_crlf(char *txt);
 void destroy_shops(void);
 void free_object_strings(struct obj_data *obj);
 void free_object_strings_proto(struct obj_data *obj);
+void boot_context_help(void);
+void free_context_help(void);
 
 /* external vars */
 extern struct descriptor_data *descriptor_list;
@@ -251,6 +264,9 @@ void boot_world(void)
   log("Loading zone table.");
   index_boot(DB_BOOT_ZON);
 
+  log("Loading triggers and generating index.");
+  index_boot(DB_BOOT_TRG);
+
   log("Loading rooms.");
   index_boot(DB_BOOT_WLD);
 
@@ -319,6 +335,12 @@ void destroy_db(void)
       free(world[cnt].description);
     free_extra_descriptions(world[cnt].ex_description);
 
+    /* free any assigned scripts */
+    if (SCRIPT(&world[cnt]))
+      extract_script(&world[cnt], WLD_TRIGGER);
+    /* free script proto list */
+    free_proto_script(&world[cnt], WLD_TRIGGER);
+    
     for (itr = 0; itr < NUM_OF_DIRS; itr++) {
       if (!world[cnt].dir_option[itr])
         continue;
@@ -331,6 +353,7 @@ void destroy_db(void)
     }
   }
   free(world);
+  top_of_world = 0;
 
   /* Objects */
   for (cnt = 0; cnt <= top_of_objt; cnt++) {
@@ -343,6 +366,9 @@ void destroy_db(void)
     if (obj_proto[cnt].action_description)
       free(obj_proto[cnt].action_description);
     free_extra_descriptions(obj_proto[cnt].ex_description);
+
+    /* free script proto list */
+    free_proto_script(&obj_proto[cnt], OBJ_TRIGGER);
   }
   free(obj_proto);
   free(obj_index);
@@ -360,6 +386,9 @@ void destroy_db(void)
     if (mob_proto[cnt].player.description)
       free(mob_proto[cnt].player.description);
 
+    /* free script proto list */
+    free_proto_script(&mob_proto[cnt], MOB_TRIGGER);
+
     while (mob_proto[cnt].affected)
       affect_remove(&mob_proto[cnt], mob_proto[cnt].affected);
   }
@@ -370,13 +399,67 @@ void destroy_db(void)
   destroy_shops();
 
   /* Zones */
+
+#define THIS_CMD zone_table[cnt].cmd[itr]
+
   for (cnt = 0; cnt <= top_of_zone_table; cnt++) {
     if (zone_table[cnt].name)
       free(zone_table[cnt].name);
-    if (zone_table[cnt].cmd)
+    if (zone_table[cnt].cmd) {
+      /* first see if any vars were defined in this zone */
+      for (itr = 0;THIS_CMD.command != 'S';itr++)
+        if (THIS_CMD.command == 'V') {
+          if (THIS_CMD.sarg1)
+            free(THIS_CMD.sarg1);
+          if (THIS_CMD.sarg2)
+            free(THIS_CMD.sarg2);
+        }
+      /* then free the command list */
       free(zone_table[cnt].cmd);
   }
+  }
   free(zone_table);
+
+#undef THIS_CMD
+
+  /* zone table reset queue */
+  if (reset_q.head) {
+    struct reset_q_element *ftemp=reset_q.head, *temp;
+    while (ftemp) {
+      temp = ftemp->next;
+      free(ftemp);
+      ftemp = temp;
+    }   
+  }
+    
+  /* Triggers */
+  for (cnt=0; cnt < top_of_trigt; cnt++) {
+    if (trig_index[cnt]->proto) {
+      /* make sure to nuke the command list (memory leak) */
+      /* free_trigger() doesn't free the command list */
+      if (trig_index[cnt]->proto->cmdlist) {
+        struct cmdlist_element *i, *j;
+        i = trig_index[cnt]->proto->cmdlist;
+        while (i) {
+          j = i->next;
+          if (i->cmd)
+            free(i->cmd);
+          free(i);
+          i = j;
+        }
+      }
+      free_trigger(trig_index[cnt]->proto);
+    }
+    free(trig_index[cnt]);
+  }
+  free(trig_index);
+  
+  /* Events */
+  event_free_all();
+  
+  /* context sensitive help system */
+  free_context_help();
+
 }
 
 
@@ -412,6 +495,9 @@ void boot_db(void)
 
   log("Loading help entries.");
   index_boot(DB_BOOT_HLP);
+
+  log("Setting up context sensitive help system for OLC");
+  boot_context_help();
 
   log("Generating player index.");
   build_player_index();
@@ -697,6 +783,9 @@ void index_boot(int mode)
   case DB_BOOT_HLP:
     prefix = HLP_PREFIX;
     break;
+  case DB_BOOT_TRG:
+    prefix = TRG_PREFIX;
+    break;
   default:
     log("SYSERR: Unknown subcommand %d to index_boot!", mode);
     exit(1);
@@ -748,6 +837,9 @@ void index_boot(int mode)
    * NOTE: "bytes" does _not_ include strings or other later malloc'd things.
    */
   switch (mode) {
+  case DB_BOOT_TRG:
+    CREATE(trig_index, struct index_data *, rec_count);
+    break;
   case DB_BOOT_WLD:
     CREATE(world, struct room_data, rec_count);
     size[0] = sizeof(struct room_data) * rec_count;
@@ -791,6 +883,7 @@ void index_boot(int mode)
     case DB_BOOT_WLD:
     case DB_BOOT_OBJ:
     case DB_BOOT_MOB:
+    case DB_BOOT_TRG:
       discrete_load(db_file, mode, buf2);
       break;
     case DB_BOOT_ZON:
@@ -826,7 +919,8 @@ void discrete_load(FILE *fl, int mode, char *filename)
   int nr = -1, last;
   char line[READ_SIZE];
 
-  const char *modes[] = {"world", "mob", "obj"};
+  const char *modes[] = {"world", "mob", "obj", "ZON", "SHP", "HLP", "trg"};
+  /* modes positions correspond to DB_BOOT_xxx in db.h */
 
   for (;;) {
     /*
@@ -864,6 +958,9 @@ void discrete_load(FILE *fl, int mode, char *filename)
 	case DB_BOOT_MOB:
 	  parse_mobile(fl, nr);
 	  break;
+        case DB_BOOT_TRG:
+          parse_trigger(fl, nr);
+          break;
 	case DB_BOOT_OBJ:
 	  strlcpy(line, parse_object(fl, nr), sizeof(line));
 	  break;
@@ -875,6 +972,15 @@ void discrete_load(FILE *fl, int mode, char *filename)
       exit(1);
     }
   }
+}
+
+char fread_letter(FILE *fp)
+{
+  char c;
+  do {
+    c = getc(fp);  
+  } while (isspace(c));
+  return c;
 }
 
 bitvector_t asciiflag_conv(char *flag)
@@ -907,6 +1013,7 @@ void parse_room(FILE *fl, int virtual_nr)
   int t[10], i;
   char line[READ_SIZE], flags[128], buf2[MAX_STRING_LENGTH], buf[128];
   struct extra_descr_data *new_descr;
+  char letter;
 
   /* This really had better fit or there are other problems. */
   snprintf(buf2, sizeof(buf2), "room #%d", virtual_nr);
@@ -973,6 +1080,14 @@ void parse_room(FILE *fl, int virtual_nr)
       world[room_nr].ex_description = new_descr;
       break;
     case 'S':			/* end of room */
+      /* DG triggers -- script is defined after the end of the room */
+      letter = fread_letter(fl);
+      ungetc(letter, fl);
+      while (letter=='T') {
+        dg_read_trigger(fl, &world[room_nr], WLD_TRIGGER);
+        letter = fread_letter(fl);
+        ungetc(letter, fl);
+      }
       top_of_world = room_nr++;
       return;
     default:
@@ -1102,6 +1217,13 @@ void renum_zone_table(void)
       case 'R': /* rem obj from room */
         a = ZCMD.arg1 = real_room(ZCMD.arg1);
 	b = ZCMD.arg2 = real_object(ZCMD.arg2);
+        break;
+      case 'T': /* a trigger */
+        b = ZCMD.arg2 = real_trigger(ZCMD.arg2);
+        c = ZCMD.arg3 = real_room(ZCMD.arg3);
+        break;
+      case 'V': /* trigger variable assignment */
+        b = ZCMD.arg3 = real_room(ZCMD.arg3);
         break;
       }
       if (a == NOWHERE || b == NOWHERE || c == NOWHERE) {
@@ -1396,6 +1518,15 @@ void parse_mobile(FILE *mob_f, int nr)
     exit(1);
   }
 
+  /* DG triggers -- script info follows mob S/E section */
+  letter = fread_letter(mob_f);
+  ungetc(letter, mob_f);
+  while (letter=='T') {
+    dg_read_trigger(mob_f, &mob_proto[i], MOB_TRIGGER);
+    letter = fread_letter(mob_f);
+    ungetc(letter, mob_f);
+  }
+
   mob_proto[i].aff_abils = mob_proto[i].real_abils;
 
   for (j = 0; j < NUM_WEARS; j++)
@@ -1548,10 +1679,14 @@ char *parse_object(FILE *obj_f, int nr)
       obj_proto[i].affected[j].modifier = t[1];
       j++;
       break;
+    case 'T':  /* DG triggers */
+      dg_obj_trigger(line, &obj_proto[i]);
+      break;
     case '$':
     case '#':
+      top_of_objt = i;
       check_object(obj_proto + i);
-      top_of_objt = i++;
+      i++;
       return (line);
     default:
       log("SYSERR: Format error in (%c): %s", *line, buf2);
@@ -1570,6 +1705,7 @@ void load_zones(FILE *fl, char *zonename)
   int cmd_no, num_of_cmds = 0, line_num = 0, tmp, error;
   char *ptr, buf[READ_SIZE], zname[READ_SIZE], buf2[MAX_STRING_LENGTH];
   int zone_fix = FALSE;
+  char t1[80], t2[80];
 
   strlcpy(zname, zonename, sizeof(zname));
 
@@ -1582,7 +1718,7 @@ void load_zones(FILE *fl, char *zonename)
    *  will need to be updated to suit. - ae.
    */
   while (get_line(fl, buf))
-    if ((strchr("MOPGERD", buf[0]) && buf[1] == ' ') || (buf[0] == 'S' && buf[1] == '\0'))
+    if ((strchr("MOPGERDTV", buf[0]) && buf[1] == ' ') || (buf[0] == 'S' && buf[1] == '\0'))
       num_of_cmds++;
 
   rewind(fl);
@@ -1661,9 +1797,17 @@ void load_zones(FILE *fl, char *zonename)
       break;
     }
     error = 0;
-    if (strchr("MOEPD", ZCMD.command) == NULL) {	/* a 3-arg command */
+    if (strchr("MOEPDTV", ZCMD.command) == NULL) {	/* a 3-arg command */
       if (sscanf(ptr, " %d %d %d ", &tmp, &ZCMD.arg1, &ZCMD.arg2) != 3)
 	error = 1;
+    } else if (ZCMD.command=='V') { /* a string-arg command */
+      if (sscanf(ptr, " %d %d %d %d %79s %79[^\f\n\r\t\v]", &tmp, &ZCMD.arg1, &ZCMD.arg2,
+		 &ZCMD.arg3, t1, t2) != 6)
+	error = 1;
+      else {
+        ZCMD.sarg1 = strdup(t1);
+        ZCMD.sarg2 = strdup(t2);
+      }
     } else {
       if (sscanf(ptr, " %d %d %d %d ", &tmp, &ZCMD.arg1, &ZCMD.arg2,
 		 &ZCMD.arg3) != 4)
@@ -1833,6 +1977,8 @@ struct char_data *create_char(void)
   ch->next = character_list;
   character_list = ch;
 
+  GET_ID(ch) = max_mob_id++;
+  
   return (ch);
 }
 
@@ -1873,6 +2019,11 @@ struct char_data *read_mobile(mob_vnum nr, int type) /* and mob_rnum */
 
   mob_index[i].number++;
 
+  GET_ID(mob) = max_mob_id++;
+
+  copy_proto_script(&mob_proto[i], mob, MOB_TRIGGER);
+  assign_triggers(mob, MOB_TRIGGER);
+
   return (mob);
 }
 
@@ -1886,6 +2037,8 @@ struct obj_data *create_obj(void)
   clear_object(obj);
   obj->next = object_list;
   object_list = obj;
+
+  GET_ID(obj) = max_obj_id++;
 
   return (obj);
 }
@@ -1909,6 +2062,11 @@ struct obj_data *read_object(obj_vnum nr, int type) /* and obj_rnum */
   object_list = obj;
 
   obj_index[i].number++;
+
+  GET_ID(obj) = max_obj_id++;
+
+  copy_proto_script(&obj_proto[i], obj, OBJ_TRIGGER);
+  assign_triggers(obj, OBJ_TRIGGER);
 
   return (obj);
 }
@@ -1968,7 +2126,8 @@ void zone_update(void)
     if (zone_table[update_u->zone_to_reset].reset_mode == 2 ||
 	is_empty(update_u->zone_to_reset)) {
       reset_zone(update_u->zone_to_reset);
-      mudlog(CMP, LVL_GOD, FALSE, "Auto zone reset: %s", zone_table[update_u->zone_to_reset].name);
+      mudlog(CMP, LVL_GOD, FALSE, "Auto zone reset: %s (Zone %d)", 
+          zone_table[update_u->zone_to_reset].name, zone_table[update_u->zone_to_reset].number);
       /* dequeue */
       if (update_u == reset_q.head)
 	reset_q.head = reset_q.head->next;
@@ -2003,6 +2162,10 @@ void reset_zone(zone_rnum zone)
   int cmd_no, last_cmd = 0;
   struct char_data *mob = NULL;
   struct obj_data *obj, *obj_to;
+  room_vnum rvnum;
+  room_rnum rrnum;
+  struct char_data *tmob=NULL; /* for trigger assignment */
+  struct obj_data *tobj=NULL;  /* for trigger assignment */
 
   for (cmd_no = 0; ZCMD.command != 'S'; cmd_no++) {
 
@@ -2023,9 +2186,12 @@ void reset_zone(zone_rnum zone)
       if (mob_index[ZCMD.arg1].number < ZCMD.arg2) {
 	mob = read_mobile(ZCMD.arg1, REAL);
 	char_to_room(mob, ZCMD.arg3);
+        load_mtrigger(mob);
+        tmob = mob;
 	last_cmd = 1;
       } else
 	last_cmd = 0;
+      tobj = NULL;
       break;
 
     case 'O':			/* read an object */
@@ -2034,13 +2200,17 @@ void reset_zone(zone_rnum zone)
 	  obj = read_object(ZCMD.arg1, REAL);
 	  obj_to_room(obj, ZCMD.arg3);
 	  last_cmd = 1;
+          load_otrigger(obj);
+          tobj = obj;
 	} else {
 	  obj = read_object(ZCMD.arg1, REAL);
 	  IN_ROOM(obj) = NOWHERE;
 	  last_cmd = 1;
+          tobj = obj;
 	}
       } else
 	last_cmd = 0;
+      tmob = NULL;
       break;
 
     case 'P':			/* object to object */
@@ -2053,8 +2223,11 @@ void reset_zone(zone_rnum zone)
 	}
 	obj_to_obj(obj, obj_to);
 	last_cmd = 1;
+        load_otrigger(obj);
+        tobj = obj;
       } else
 	last_cmd = 0;
+      tmob = NULL;
       break;
 
     case 'G':			/* obj_to_char */
@@ -2067,8 +2240,11 @@ void reset_zone(zone_rnum zone)
 	obj = read_object(ZCMD.arg1, REAL);
 	obj_to_char(obj, mob);
 	last_cmd = 1;
+        load_otrigger(obj);
+        tobj = obj;
       } else
 	last_cmd = 0;
+      tmob = NULL;
       break;
 
     case 'E':			/* object to equipment list */
@@ -2082,17 +2258,27 @@ void reset_zone(zone_rnum zone)
 	  ZONE_ERROR("invalid equipment pos number");
 	} else {
 	  obj = read_object(ZCMD.arg1, REAL);
+          IN_ROOM(obj) = IN_ROOM(mob);
+          load_otrigger(obj);
+          if (wear_otrigger(obj, mob, ZCMD.arg3)) {
+            IN_ROOM(obj) = NOWHERE;
 	  equip_char(mob, obj, ZCMD.arg3);
+          } else
+            obj_to_char(obj, mob);
+          tobj = obj;
 	  last_cmd = 1;
 	}
       } else
 	last_cmd = 0;
+      tmob = NULL;
       break;
 
     case 'R': /* rem obj from room */
       if ((obj = get_obj_in_list_num(ZCMD.arg2, world[ZCMD.arg1].contents)) != NULL)
         extract_obj(obj);
       last_cmd = 1;
+      tmob = NULL;
+      tobj = NULL;
       break;
 
 
@@ -2123,6 +2309,60 @@ void reset_zone(zone_rnum zone)
 	  break;
 	}
       last_cmd = 1;
+      tmob = NULL;
+      tobj = NULL;
+      break;
+
+    case 'T': /* trigger command */
+      if (ZCMD.arg1==MOB_TRIGGER && tmob) {
+        if (!SCRIPT(tmob))
+          CREATE(SCRIPT(tmob), struct script_data, 1);
+        add_trigger(SCRIPT(tmob), read_trigger(ZCMD.arg2), -1);
+        last_cmd = 1;
+      } else if (ZCMD.arg1==OBJ_TRIGGER && tobj) {
+        if (!SCRIPT(tobj))
+          CREATE(SCRIPT(tobj), struct script_data, 1);
+        add_trigger(SCRIPT(tobj), read_trigger(ZCMD.arg2), -1);
+        last_cmd = 1;
+      } else if (ZCMD.arg1==WLD_TRIGGER) {
+        if (ZCMD.arg3 == NOWHERE || ZCMD.arg3>top_of_world) {
+          ZONE_ERROR("Invalid room number in trigger assignment");
+        }
+        if (!world[ZCMD.arg3].script)
+          CREATE(world[ZCMD.arg3].script, struct script_data, 1);
+        add_trigger(world[ZCMD.arg3].script, read_trigger(ZCMD.arg2), -1);
+        last_cmd = 1;
+      }
+
+      break;
+
+    case 'V':
+      if (ZCMD.arg1==MOB_TRIGGER && tmob) {
+        if (!SCRIPT(tmob)) {
+          ZONE_ERROR("Attempt to give variable to scriptless mobile");
+        } else
+          add_var(&(SCRIPT(tmob)->global_vars), ZCMD.sarg1, ZCMD.sarg2,
+                  ZCMD.arg3);
+        last_cmd = 1;
+      } else if (ZCMD.arg1==OBJ_TRIGGER && tobj) {
+        if (!SCRIPT(tobj)) {
+          ZONE_ERROR("Attempt to give variable to scriptless object");
+        } else
+          add_var(&(SCRIPT(tobj)->global_vars), ZCMD.sarg1, ZCMD.sarg2,
+                  ZCMD.arg3);
+        last_cmd = 1;
+      } else if (ZCMD.arg1==WLD_TRIGGER) {
+        if (ZCMD.arg3 == NOWHERE || ZCMD.arg3>top_of_world) {
+          ZONE_ERROR("Invalid room number in variable assignment");
+        } else {
+          if (!(world[ZCMD.arg3].script)) {
+            ZONE_ERROR("Attempt to give variable to scriptless object");
+          } else
+            add_var(&(world[ZCMD.arg3].script->global_vars),
+                    ZCMD.sarg1, ZCMD.sarg2, ZCMD.arg2);
+          last_cmd = 1;
+        }
+      }
       break;
 
     default:
@@ -2133,6 +2373,14 @@ void reset_zone(zone_rnum zone)
   }
 
   zone_table[zone].age = 0;
+
+  /* handle reset_wtrigger's */
+  rvnum = zone_table[zone].bot;
+  while (rvnum <= zone_table[zone].top) {
+    rrnum = real_room(rvnum);
+    if (rrnum != NOWHERE) reset_wtrigger(&world[rrnum]);
+    rvnum++;
+  }
 }
 
 
@@ -2147,9 +2395,13 @@ int is_empty(zone_rnum zone_nr)
       continue;
     if (IN_ROOM(i->character) == NOWHERE)
       continue;
-    if (GET_LEVEL(i->character) >= LVL_IMMORT)
-      continue;
     if (world[IN_ROOM(i->character)].zone != zone_nr)
+      continue;
+    /*
+     * if an immortal has nohassle off, he counts as present 
+     * added for testing zone reset triggers - Welcor 
+     */
+    if ((GET_LEVEL(i->character) >= LVL_IMMORT) && (PRF_FLAGGED(i->character, PRF_NOHASSLE)))
       continue;
 
     return (0);
@@ -2240,6 +2492,8 @@ void save_char(struct char_data *ch)
 
   fseek(player_fl, GET_PFILEPOS(ch) * sizeof(struct char_file_u), SEEK_SET);
   fwrite(&st, sizeof(struct char_file_u), 1, player_fl);
+
+  save_char_vars(ch);
 }
 
 
@@ -2325,9 +2579,12 @@ void char_to_store(struct char_data *ch, struct char_file_u *st)
   /* Unaffect everything a character can be affected by */
 
   for (i = 0; i < NUM_WEARS; i++) {
-    if (GET_EQ(ch, i))
+    if (GET_EQ(ch, i)) {
       char_eq[i] = unequip_char(ch, i);
-    else
+#ifndef NO_EXTRANEOUS_TRIGGERS
+      remove_otrigger(char_eq[i], ch);
+#endif
+    } else
       char_eq[i] = NULL;
   }
 
@@ -2410,8 +2667,16 @@ void char_to_store(struct char_data *ch, struct char_file_u *st)
   }
 
   for (i = 0; i < NUM_WEARS; i++) {
-    if (char_eq[i])
+    if (char_eq[i]) {
+#ifndef NO_EXTRANEOUS_TRIGGERS
+      if (wear_otrigger(char_eq[i], ch, i))
+#endif
       equip_char(ch, char_eq[i], i);
+#ifndef NO_EXTRANEOUS_TRIGGERS
+      else
+        obj_to_char(char_eq[i], ch);
+#endif
+    }
   }
 /*   affect_total(ch); unnecessary, I think !?! */
 }				/* Char to store */
@@ -2474,17 +2739,19 @@ char *fread_string(FILE *fl, const char *error)
       exit(1);
     }
     /* If there is a '~', end the string; else put an "\r\n" over the '\n'. */
-    if ((point = strchr(tmp, '~')) != NULL) {
-      *point = '\0';
+    /* now only removes trailing ~'s -- Welcor */
+    point = strchr(tmp, '\0');
+    for (point-- ; (*point=='\r' || *point=='\n'); point--);
+    if (*point=='~') {
+      *point='\0';
       done = 1;
     } else {
-      point = tmp + strlen(tmp) - 1;
-      *(point++) = '\r';
-      *(point++) = '\n';
-      *point = '\0';
+      *(++point) = '\r';
+      *(++point) = '\n';
+      *(++point) = '\0';
     }
 
-    templength = strlen(tmp);
+    templength = point - tmp;
 
     if (length + templength >= MAX_STRING_LENGTH) {
       log("SYSERR: fread_string: string too large (db.c)");
@@ -2532,6 +2799,10 @@ void free_char(struct char_data *ch)
       free(ch->player.long_descr);
     if (ch->player.description)
       free(ch->player.description);
+    
+    /* free script proto list */
+    free_proto_script(ch, MOB_TRIGGER);
+    
   } else if ((i = GET_MOB_RNUM(ch)) != NOBODY) {
     /* otherwise, free strings only if the string is not pointing at proto */
     if (ch->player.name && ch->player.name != mob_proto[i].player.name)
@@ -2544,9 +2815,16 @@ void free_char(struct char_data *ch)
       free(ch->player.long_descr);
     if (ch->player.description && ch->player.description != mob_proto[i].player.description)
       free(ch->player.description);
+    /* free script proto list if it's not the prototype */
+    if (ch->proto_script && ch->proto_script != mob_proto[i].proto_script)
+      free_proto_script(ch, MOB_TRIGGER);
   }
   while (ch->affected)
     affect_remove(ch, ch->affected);
+
+  /* free any assigned scripts */
+  if (SCRIPT(ch))
+    extract_script(ch, MOB_TRIGGER);
 
   if (ch->desc)
     ch->desc->character = NULL;
@@ -2560,10 +2838,17 @@ void free_char(struct char_data *ch)
 /* release memory allocated for an obj struct */
 void free_obj(struct obj_data *obj)
 {
-  if (GET_OBJ_RNUM(obj) == NOWHERE)
+  if (GET_OBJ_RNUM(obj) == NOWHERE) {
     free_object_strings(obj);
-  else
+    /* free script proto list */
+    free_proto_script(obj, OBJ_TRIGGER);
+  } else {
     free_object_strings_proto(obj);
+  }
+
+  /* free any assigned scripts */
+  if (SCRIPT(obj))
+    extract_script(obj, OBJ_TRIGGER);
 
   free(obj);
 }
@@ -2883,9 +3168,9 @@ obj_rnum real_object(obj_vnum vnum)
 
 
 /* returns the real number of the zone with given virtual number */
-room_rnum real_zone(room_vnum vnum)
+zone_rnum real_zone(zone_vnum vnum)
 {
-  room_rnum bot, top, mid;
+  zone_rnum bot, top, mid;
 
   bot = 0;
   top = top_of_zone_table;

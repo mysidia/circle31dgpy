@@ -21,6 +21,9 @@
 #include "handler.h"
 #include "constants.h"
 #include "improved-edit.h"
+#include "dg_olc.h"
+#include "screen.h"
+#include "constants.h"
 
 /*-------------------------------------------------------------------*/
 
@@ -234,10 +237,13 @@ void medit_setup_new(struct descriptor_data *d)
   OLC_MPROGL(d) = NULL;
   OLC_MPROG(d) = NULL;
 #endif
+  SCRIPT(mob) = NULL;
+  mob->proto_script = OLC_SCRIPT(d) = NULL;
 
   OLC_MOB(d) = mob;
   /* Has changed flag. (It hasn't so far, we just made it.) */
   OLC_VAL(d) = FALSE;
+  OLC_ITEM_TYPE(d) = MOB_TRIGGER;
 
   medit_disp_menu(d);
 }
@@ -278,6 +284,15 @@ void medit_setup_existing(struct descriptor_data *d, int rmob_num)
 #endif
 
   OLC_MOB(d) = mob;
+  OLC_ITEM_TYPE(d) = MOB_TRIGGER;
+  dg_olc_script_copy(d);
+  /*
+   * The edited mob must not have a script.
+   * It will be assigned to the updated mob later, after editing.
+   */
+  SCRIPT(mob) = NULL;
+  OLC_MOB(d)->proto_script = NULL;
+
   medit_disp_menu(d);
 }
 
@@ -315,13 +330,39 @@ void medit_save_internally(struct descriptor_data *d)
   int i;
   mob_rnum new_rnum;
   struct descriptor_data *dsc;
+  struct char_data *mob;
 
   i = (real_mobile(OLC_NUM(d)) == NOBODY);
 
   if ((new_rnum = add_mobile(OLC_MOB(d), OLC_NUM(d))) == NOBODY) {
-    log("medit_save_internally: add_object failed.");
+    log("medit_save_internally: add_mobile failed.");
     return;
   }
+
+
+
+  /* Update triggers */
+  /* Free old proto list  */
+  if (mob_proto[new_rnum].proto_script &&
+      mob_proto[new_rnum].proto_script != OLC_SCRIPT(d)) 
+    free_proto_script(&mob_proto[new_rnum], MOB_TRIGGER);   
+
+  mob_proto[new_rnum].proto_script = OLC_SCRIPT(d);
+
+  /* this takes care of the mobs currently in-game */
+  for (mob = character_list; mob; mob = mob->next) {
+    if (GET_MOB_RNUM(mob) != new_rnum) 
+      continue;
+    
+    /* remove any old scripts */
+    if (SCRIPT(mob)) 
+      extract_script(mob, MOB_TRIGGER);
+
+    free_proto_script(mob, MOB_TRIGGER);
+    copy_proto_script(&mob_proto[new_rnum], mob, MOB_TRIGGER);
+    assign_triggers(mob, MOB_TRIGGER);
+  }
+  /* end trigger update */  
 
   if (!i)	/* Only renumber on new mobiles. */
     return;
@@ -591,6 +632,7 @@ void medit_disp_menu(struct descriptor_data *d)
 #if CONFIG_OASIS_MPROG
 	  "%sP%s) Mob Progs : %s%s\r\n"
 #endif
+          "%sS%s) Script    : %s%s\r\n"
 	  "%sQ%s) Quit\r\n"
 	  "Enter choice : ",
 
@@ -602,6 +644,7 @@ void medit_disp_menu(struct descriptor_data *d)
 #if CONFIG_OASIS_MPROG
 	  grn, nrm, cyn, (OLC_MPROGL(d) ? "Set." : "Not Set."),
 #endif
+          grn, nrm, cyn, OLC_SCRIPT(d) ?"Set.":"Not Set.",
 	  grn, nrm
 	  );
 
@@ -782,6 +825,11 @@ void medit_parse(struct descriptor_data *d, char *arg)
       medit_disp_mprog(d);
       return;
 #endif
+    case 's':
+    case 'S':
+      OLC_SCRIPT_EDIT_MODE(d) = SCRIPT_MAIN_MENU;
+      dg_script_menu(d);
+      return;
     default:
       medit_disp_menu(d);
       return;
@@ -795,6 +843,10 @@ void medit_parse(struct descriptor_data *d, char *arg)
     else
       write_to_output(d, "Oops...\r\n");
     return;
+/*-------------------------------------------------------------------*/
+  case OLC_SCRIPT_EDIT:
+    if (dg_script_edit_parse(d, arg)) return;
+    break;
 /*-------------------------------------------------------------------*/
   case MEDIT_ALIAS:
     if (GET_ALIAS(OLC_MOB(d)))

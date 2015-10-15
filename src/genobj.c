@@ -15,6 +15,7 @@
 #include "genolc.h"
 #include "genobj.h"
 #include "genzon.h"
+#include "dg_olc.h"
 
 static int copy_object_main(struct obj_data *to, struct obj_data *from, int free_object);
 
@@ -268,6 +269,11 @@ int save_objects(zone_rnum zone_num)
 	      GET_OBJ_WEIGHT(obj), GET_OBJ_COST(obj), GET_OBJ_RENT(obj), GET_OBJ_LEVEL(obj)
       );
 
+      /*
+       * Do we have script(s) attached ? 
+       */
+      script_save_to_disk(fp, obj, OBJ_TRIGGER);
+      
       /*
        * Do we have extra descriptions? 
        */

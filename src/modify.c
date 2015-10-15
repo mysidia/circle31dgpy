@@ -38,6 +38,7 @@ int count_pages(char *str);
 void paginate_string(char *str, struct descriptor_data *d);
 void playing_string_cleanup(struct descriptor_data *d, int action);
 void exdesc_string_cleanup(struct descriptor_data *d, int action);
+void trigedit_string_cleanup(struct descriptor_data *d, int terminator);
 
 const char *string_fields[] =
 {
@@ -75,6 +76,16 @@ int length[] =
  */
 void smash_tilde(char *str)
 {
+  /*
+   * Erase any _line ending_ tildes inserted in the editor. 
+   * The load mechanism can't handle those, yet.
+   * -- Welcor 04/2003
+   */
+
+   char *p = str;
+   for (; *p; p++)
+     if (*p == '~' && (*(p+1)=='\r' || *(p+1)=='\n' || *(p+1)=='\0'))
+       *p=' ';
 #if 0
   /*
    * Erase any ~'s inserted by people in the editor.  This prevents anyone
@@ -170,6 +181,7 @@ void string_add(struct descriptor_data *d, char *str)
         case CON_MEDIT:
         case CON_OEDIT:
         case CON_EXDESC:
+        case CON_TRIGEDIT:
           free(*d->str);
           *d->str = d->backstr;
           d->backstr = NULL;
@@ -206,6 +218,7 @@ void string_add(struct descriptor_data *d, char *str)
       { CON_OEDIT  , oedit_string_cleanup },
       { CON_REDIT  , redit_string_cleanup },
       { CON_TEDIT  , tedit_string_cleanup },
+      { CON_TRIGEDIT, trigedit_string_cleanup },
       { CON_EXDESC , exdesc_string_cleanup },
       { CON_PLAYING, playing_string_cleanup },
       { -1, NULL }

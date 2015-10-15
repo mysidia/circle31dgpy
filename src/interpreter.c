@@ -26,6 +26,8 @@
 #include "oasis.h"
 #include "tedit.h"
 #include "improved-edit.h"
+#include "dg_scripts.h"
+#include "constants.h"
 
 /* external variables */
 extern room_rnum r_mortal_start_room;
@@ -50,6 +52,7 @@ int isbanned(char *hostname);
 int Valid_Name(char *newname);
 void read_aliases(struct char_data *ch);
 void delete_aliases(const char *charname);
+void read_saved_vars(struct char_data *ch);
 
 /* local functions */
 int perform_dupe_check(struct descriptor_data *d);
@@ -188,6 +191,32 @@ ACMD(do_wizutil);
 ACMD(do_write);
 ACMD(do_zreset);
 
+/* DG Script ACMD's */
+ACMD(do_attach);
+ACMD(do_detach);
+ACMD(do_tlist);
+ACMD(do_tstat);
+ACMD(do_masound);
+ACMD(do_mkill);
+ACMD(do_mjunk);
+ACMD(do_mdoor);
+ACMD(do_mechoaround);
+ACMD(do_msend);
+ACMD(do_mecho);
+ACMD(do_mload);
+ACMD(do_mpurge);
+ACMD(do_mgoto);
+ACMD(do_mat);
+ACMD(do_mdamage);
+ACMD(do_mteleport);
+ACMD(do_mforce);
+ACMD(do_mhunt);
+ACMD(do_mremember);
+ACMD(do_mforget);
+ACMD(do_mtransform);
+ACMD(do_mzoneecho);
+ACMD(do_vdelete);
+ACMD(do_mfollow);
 
 /* This is the Master Command List(tm).
 
@@ -248,6 +277,7 @@ cpp_extern const struct command_info cmd_info[] = {
   { "clear"    , POS_DEAD    , do_gen_ps   , 0, SCMD_CLEAR },
   { "close"    , POS_SITTING , do_gen_door , 0, SCMD_CLOSE },
   { "cls"      , POS_DEAD    , do_gen_ps   , 0, SCMD_CLEAR },
+  { "clsolc"   , POS_DEAD    , do_gen_tog  , 0, SCMD_CLS },
   { "consider" , POS_RESTING , do_consider , 0, 0 },
   { "color"    , POS_DEAD    , do_color    , 0, 0 },
   { "comfort"  , POS_RESTING , do_action   , 0, 0 },
@@ -510,6 +540,7 @@ cpp_extern const struct command_info cmd_info[] = {
   { "track"    , POS_STANDING, do_track    , 0, 0 },
   { "trackthru", POS_DEAD    , do_gen_tog  , LVL_IMPL, SCMD_TRACK },
   { "transfer" , POS_SLEEPING, do_trans    , LVL_GOD, 0 },
+  { "trigedit" , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_TRIGEDIT},
   { "twiddle"  , POS_RESTING , do_action   , 0, 0 },
   { "typo"     , POS_DEAD    , do_gen_write, 0, SCMD_TYPO },
 
@@ -556,6 +587,33 @@ cpp_extern const struct command_info cmd_info[] = {
   { "zreset"   , POS_DEAD    , do_zreset   , LVL_GRGOD, 0 },
   { "zedit"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_ZEDIT },
   { "zlist"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_ZLIST },
+
+  /* DG trigger commands */
+  { "attach"   , POS_DEAD    , do_attach   , LVL_BUILDER, 0 },
+  { "detach"   , POS_DEAD    , do_detach   , LVL_BUILDER, 0 },
+  { "tlist"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_TLIST },
+  { "tstat"    , POS_DEAD    , do_tstat    , LVL_BUILDER, 0 },
+  { "masound"  , POS_DEAD    , do_masound  , -1, 0 },
+  { "mkill"    , POS_STANDING, do_mkill    , -1, 0 },
+  { "mjunk"    , POS_SITTING , do_mjunk    , -1, 0 },
+  { "mdamage"  , POS_DEAD    , do_mdamage  , -1, 0 },
+  { "mdoor"    , POS_DEAD    , do_mdoor    , -1, 0 },
+  { "mecho"    , POS_DEAD    , do_mecho    , -1, 0 },
+  { "mechoaround" , POS_DEAD , do_mechoaround, -1, 0 },
+  { "msend"    , POS_DEAD    , do_msend    , -1, 0 },
+  { "mload"    , POS_DEAD    , do_mload    , -1, 0 },
+  { "mpurge"   , POS_DEAD    , do_mpurge   , -1, 0 },
+  { "mgoto"    , POS_DEAD    , do_mgoto    , -1, 0 },
+  { "mat"      , POS_DEAD    , do_mat      , -1, 0 },
+  { "mteleport", POS_DEAD    , do_mteleport, -1, 0 },
+  { "mforce"   , POS_DEAD    , do_mforce   , -1, 0 },
+  { "mhunt"    , POS_DEAD    , do_mhunt    , -1, 0 },
+  { "mremember", POS_DEAD    , do_mremember, -1, 0 },
+  { "mforget"  , POS_DEAD    , do_mforget  , -1, 0 },
+  { "mtransform",POS_DEAD    , do_mtransform,-1, 0 },
+  { "mzoneecho", POS_DEAD    , do_mzoneecho, -1, 0 },
+  { "vdelete"  , POS_DEAD    , do_vdelete  , LVL_BUILDER, 0 },
+  { "mfollow"  , POS_DEAD    , do_mfollow  , -1, 0 },
 
   { "\n", 0, 0, 0, 0 } };	/* this must be last */
 
@@ -615,7 +673,17 @@ void command_interpreter(struct char_data *ch, char *argument)
   } else
     line = any_one_arg(argument, arg);
 
+  /* Since all command triggers check for valid_dg_target before acting, the levelcheck
+   * here has been removed. 
+   */
   /* otherwise, find the command */
+  {
+    int cont;                                            /* continue the command checks */
+    cont = command_wtrigger(ch, arg, line);              /* any world triggers ? */
+    if (!cont) cont = command_mtrigger(ch, arg, line);   /* any mobile triggers ? */
+    if (!cont) cont = command_otrigger(ch, arg, line);   /* any object triggers ? */
+    if (cont) return;                                    /* yes, command trigger took over */
+  }
   for (length = strlen(arg), cmd = 0; *cmd_info[cmd].command != '\n'; cmd++)
     if (!strncmp(cmd_info[cmd].command, arg, length))
       if (GET_LEVEL(ch) >= cmd_info[cmd].minimum_level)
@@ -1312,6 +1380,7 @@ void nanny(struct descriptor_data *d, char *arg)
     { CON_MEDIT, medit_parse },
     { CON_REDIT, redit_parse },
     { CON_CEDIT, cedit_parse },
+    { CON_TRIGEDIT, trigedit_parse },
     { -1, NULL }
   };
 
@@ -1322,6 +1391,9 @@ void nanny(struct descriptor_data *d, char *arg)
    */
   for (player_i = 0; olc_functions[player_i].state >= 0; player_i++)
     if (STATE(d) == olc_functions[player_i].state) {
+      /* send context-sensitive help if need be */
+      if (context_help(d, arg)) return;
+
       (*olc_functions[player_i].func)(d, arg);
       return;
     }
@@ -1620,10 +1692,19 @@ void nanny(struct descriptor_data *d, char *arg)
       char_to_room(d->character, load_room);
       load_result = Crash_load(d->character);
 
+      /* with the copyover patch, this next line goes in enter_player_game() */
+      GET_ID(d->character) = GET_IDNUM(d->character);
+
       /* Clear their load room if it's not persistant. */
       if (!PLR_FLAGGED(d->character, PLR_LOADROOM))
         GET_LOADROOM(d->character) = NOWHERE;
       save_char(d->character);
+
+      /* with the copyover patch, this next line goes in enter_player_game() */
+      read_saved_vars(d->character);
+
+      greet_mtrigger(d->character, -1);
+      greet_memory_mtrigger(d->character);
 
       act("$n has entered the game.", TRUE, d->character, 0, 0, TO_ROOM);
 
@@ -1644,9 +1725,16 @@ void nanny(struct descriptor_data *d, char *arg)
 
     case '2':
       if (d->character->player.description) {
-	write_to_output(d, "Old description:\r\n%s", d->character->player.description);
-	free(d->character->player.description);
-	d->character->player.description = NULL;
+	write_to_output(d, "Current description:\r\n%s", d->character->player.description);
+	/*
+	 * Don't free this now... so that the old description gets loaded
+	 * as the current buffer in the editor.  Do setup the ABORT buffer
+	 * here, however.
+	 *
+	 * free(d->character->player.description);
+	 * d->character->player.description = NULL;
+	 */
+	d->backstr = strdup(d->character->player.description);
       }
       write_to_output(d, "Enter the new text you'd like others to see when they look at you.\r\n");
       send_editor_help(d);

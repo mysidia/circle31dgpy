@@ -19,6 +19,7 @@
 #include "handler.h"
 #include "interpreter.h"
 #include "spells.h"
+#include "dg_scripts.h"
 
 /* local vars */
 int extractions_pending = 0;
@@ -50,8 +51,6 @@ char *fname(const char *namelist)
   return (holder);
 }
 
-/* Stock isname().  Leave this here even if you put in a newer  *
- * isname().  Used for OasisOLC.                                */
 int is_name(const char *str, const char *namelist)
 {
   const char *curname, *curstr;
@@ -83,33 +82,25 @@ int is_name(const char *str, const char *namelist)
   }
 }
 
+/* allow abbreviations */
+#define WHITESPACE " \t"
 int isname(const char *str, const char *namelist)
 {
-  const char *curname, *curstr;
+  char *newlist;
+  char *curtok;
 
-  curname = namelist;
-  for (;;) {
-    for (curstr = str;; curstr++, curname++) {
-      if (!*curstr && !isalpha(*curname))
-	return (1);
+  if (!strcmp(str, namelist)) /* the easy way */
+    return 1;
 
-      if (!*curname)
-	return (0);
-
-      if (!*curstr || *curname == ' ')
-	break;
-
-      if (LOWER(*curstr) != LOWER(*curname))
-	break;
-    }
-
-    /* skip to next name */
-
-    for (; isalpha(*curname); curname++);
-    if (!*curname)
-      return (0);
-    curname++;			/* first char of new name */
+  newlist = strdup(namelist); /* make a copy since strtok 'modifies' strings */
+  for(curtok = strtok(newlist, WHITESPACE); curtok; curtok = strtok(NULL, WHITESPACE))
+     if(curtok && is_abbrev(str, curtok))
+       {
+       free(newlist);
+       return 1;
   }
+     free(newlist);
+     return 0;
 }
 
 
@@ -829,6 +820,13 @@ void extract_obj(struct obj_data *obj)
 
   if (GET_OBJ_RNUM(obj) != NOTHING)
     (obj_index[GET_OBJ_RNUM(obj)].number)--;
+
+  if (SCRIPT(obj)) 
+    extract_script(obj, OBJ_TRIGGER);
+ 
+  if (GET_OBJ_RNUM(obj) == NOTHING || obj->proto_script != obj_proto[GET_OBJ_RNUM(obj)].proto_script)
+    free_proto_script(obj, OBJ_TRIGGER);
+  
   free_obj(obj);
 }
 
@@ -836,7 +834,8 @@ void extract_obj(struct obj_data *obj)
 
 void update_object(struct obj_data *obj, int use)
 {
-  if (GET_OBJ_TIMER(obj) > 0)
+  /* dont update objects with a timer trigger */
+  if (!SCRIPT_CHECK(obj, OTRIG_TIMER) && (GET_OBJ_TIMER(obj) > 0))
     GET_OBJ_TIMER(obj) -= use;
   if (obj->contains)
     update_object(obj->contains, use);
@@ -965,6 +964,12 @@ void extract_char_final(struct char_data *ch)
     if (GET_MOB_RNUM(ch) != NOTHING)	/* prototyped */
       mob_index[GET_MOB_RNUM(ch)].number--;
     clearMemory(ch);
+
+    if (SCRIPT(ch)) 
+      extract_script(ch, MOB_TRIGGER);
+
+    if (SCRIPT_MEM(ch))
+      extract_script_mem(SCRIPT_MEM(ch));
   } else {
     save_char(ch);
     Crash_delete_crashfile(ch);

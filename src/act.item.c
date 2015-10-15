@@ -20,6 +20,8 @@
 #include "db.h"
 #include "spells.h"
 #include "constants.h"
+#include "dg_scripts.h"
+#include "oasis.h"
 
 /* local functions */
 int can_take_obj(struct char_data *ch, struct obj_data *obj);
@@ -57,6 +59,13 @@ ACMD(do_grab);
 void perform_put(struct char_data *ch, struct obj_data *obj,
 		      struct obj_data *cont)
 {
+
+  if (!drop_otrigger(obj, ch))
+    return;
+
+  if (!obj) /* object might be extracted by drop_otrigger */
+    return;
+
   if (GET_OBJ_WEIGHT(cont) + GET_OBJ_WEIGHT(obj) > GET_OBJ_VAL(cont, 0))
     act("$p won't fit in $P.", FALSE, ch, obj, cont, TO_CHAR);
   else if (OBJ_FLAGGED(obj, ITEM_NODROP) && IN_ROOM(cont) != NOWHERE)
@@ -203,7 +212,7 @@ void perform_get_from_container(struct char_data *ch, struct obj_data *obj,
   if (mode == FIND_OBJ_INV || can_take_obj(ch, obj)) {
     if (IS_CARRYING_N(ch) >= CAN_CARRY_N(ch))
       act("$p: you can't hold any more items.", FALSE, ch, obj, 0, TO_CHAR);
-    else {
+    else if (get_otrigger(obj, ch) && (obj)) { /* obj may be purged */
       obj_from_obj(obj);
       obj_to_char(obj, ch);
       act("You get $p from $P.", FALSE, ch, obj, cont, TO_CHAR);
@@ -267,7 +276,9 @@ void get_from_container(struct char_data *ch, struct obj_data *cont,
 
 int perform_get_from_room(struct char_data *ch, struct obj_data *obj)
 {
-  if (can_take_obj(ch, obj)) {
+  if (can_take_obj(ch, obj) &&
+      get_otrigger(obj, ch) &&
+      (obj)) { /* obj may be purged by get_otrigger */
     obj_from_room(obj);
     obj_to_char(obj, ch);
     act("You get $p.", FALSE, ch, obj, 0, TO_CHAR);
@@ -415,6 +426,11 @@ void perform_drop_gold(struct char_data *ch, int amount,
       } else {
         char buf[MAX_STRING_LENGTH];
 
+        if (!drop_wtrigger(obj, ch) && (obj)) { /* obj may be purged */
+          extract_obj(obj);
+          return;
+        }
+
 	snprintf(buf, sizeof(buf), "$n drops %s.", money_desc(amount));
 	act(buf, TRUE, ch, 0, 0, TO_ROOM);
 
@@ -442,6 +458,15 @@ int perform_drop(struct char_data *ch, struct obj_data *obj,
 {
   char buf[MAX_STRING_LENGTH];
   int value;
+
+  if (!drop_otrigger(obj, ch))
+    return 0;
+  
+  if ((mode == SCMD_DROP) && !drop_wtrigger(obj, ch))
+    return 0;
+
+  if (!obj) /* obj may be purged */
+    return 0;
 
   if (OBJ_FLAGGED(obj, ITEM_NODROP)) {
     snprintf(buf, sizeof(buf), "You can't %s $p, it must be CURSED!", sname);
@@ -599,6 +624,11 @@ ACMD(do_drop)
 void perform_give(struct char_data *ch, struct char_data *vict,
 		       struct obj_data *obj)
 {
+  if (!give_otrigger(obj, ch, vict) || !obj)  /* obj might be purged */
+    return;
+  if (!receive_mtrigger(vict, ch, obj) || !obj)  /* obj might be purged */
+    return;
+
   if (OBJ_FLAGGED(obj, ITEM_NODROP)) {
     act("You can't let go of $p!!  Yeech!", FALSE, ch, obj, 0, TO_CHAR);
     return;
@@ -661,6 +691,8 @@ void perform_give_gold(struct char_data *ch, struct char_data *vict,
   if (IS_NPC(ch) || (GET_LEVEL(ch) < LVL_GOD))
     GET_GOLD(ch) -= amount;
   GET_GOLD(vict) += amount;
+
+  bribe_mtrigger(vict, ch, amount);
 }
 
 
@@ -1237,6 +1269,11 @@ void perform_wear(struct char_data *ch, struct obj_data *obj, int where)
     send_to_char(ch, "%s", already_wearing[where]);
     return;
   }
+
+  /* See if a trigger disallows it */
+  if (!wear_otrigger(obj, ch, where) || (obj->carried_by != ch))
+    return;
+
   wear_message(ch, obj, where);
   obj_from_char(obj);
   equip_char(ch, obj, where);
@@ -1413,6 +1450,9 @@ void perform_remove(struct char_data *ch, int pos)
   else if (IS_CARRYING_N(ch) >= CAN_CARRY_N(ch))
     act("$p: you can't carry that many items!", FALSE, ch, obj, 0, TO_CHAR);
   else {
+    if (!remove_otrigger(obj, ch))
+      return;
+
     obj_to_char(unequip_char(ch, pos), ch);
     act("You stop using $p.", FALSE, ch, obj, 0, TO_CHAR);
     act("$n stops using $p.", TRUE, ch, obj, 0, TO_ROOM);

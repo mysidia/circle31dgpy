@@ -28,6 +28,7 @@ extern int no_specials;
 /* external functions */
 ACMD(do_get);
 ACMD(do_action);
+void hunt_victim(struct char_data *ch);
 
 /* local functions */
 void mobile_activity(void);
@@ -65,6 +66,9 @@ void mobile_activity(void)
     /* If the mob has no specproc, do the default actions */
     if (FIGHTING(ch) || !AWAKE(ch))
       continue;
+
+    /* hunt a victim, if applicable */
+    hunt_victim(ch);
 
     /* Scavenger (picking up objects) */
     if (MOB_FLAGGED(ch, MOB_SCAVENGER))

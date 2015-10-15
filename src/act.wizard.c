@@ -21,6 +21,8 @@
 #include "house.h"
 #include "screen.h"
 #include "constants.h"
+#include "oasis.h"
+#include "dg_scripts.h"
 
 /*   external vars  */
 extern FILE *player_fl;
@@ -47,6 +49,7 @@ int parse_class(char arg);
 void run_autowiz(void);
 int save_all(void);
 void print_zone(struct char_data *ch, zone_vnum vnum);
+struct char_data *find_char(int n);
 
 /* local functions */
 int perform_set(struct char_data *ch, struct char_data *vict, int mode, char *val_arg);
@@ -108,7 +111,7 @@ ACMD(do_echo)
 
     act(buf, FALSE, ch, 0, 0, TO_ROOM);
 
-    if (PRF_FLAGGED(ch, PRF_NOREPEAT))
+    if (!IS_NPC(ch) && PRF_FLAGGED(ch, PRF_NOREPEAT))
       send_to_char(ch, "%s", CONFIG_OK);
     else
       act(buf, FALSE, ch, 0, 0, TO_CHAR);
@@ -259,6 +262,7 @@ ACMD(do_goto)
   act(buf, TRUE, ch, 0, 0, TO_ROOM);
 
   look_at_room(ch, 0);
+  enter_wtrigger(&world[IN_ROOM(ch)], ch, -1);
 }
 
 
@@ -288,6 +292,8 @@ ACMD(do_trans)
       act("$n arrives from a puff of smoke.", FALSE, victim, 0, 0, TO_ROOM);
       act("$n has transferred you!", FALSE, ch, 0, victim, TO_VICT);
       look_at_room(victim, 0);
+  
+      enter_wtrigger(&world[IN_ROOM(victim)], victim, -1);
     }
   } else {			/* Trans All */
     if (GET_LEVEL(ch) < LVL_GRGOD) {
@@ -306,6 +312,7 @@ ACMD(do_trans)
 	act("$n arrives from a puff of smoke.", FALSE, victim, 0, 0, TO_ROOM);
 	act("$n has transferred you!", FALSE, ch, 0, victim, TO_VICT);
 	look_at_room(victim, 0);
+        enter_wtrigger(&world[IN_ROOM(victim)], victim, -1);
       }
     send_to_char(ch, "%s", CONFIG_OK);
   }
@@ -339,6 +346,7 @@ ACMD(do_teleport)
     act("$n arrives from a puff of smoke.", FALSE, victim, 0, 0, TO_ROOM);
     act("$n has teleported you!", FALSE, ch, 0, (char *) victim, TO_VICT);
     look_at_room(victim, 0);
+    enter_wtrigger(&world[IN_ROOM(victim)], victim, -1);
   }
 }
 
@@ -445,6 +453,9 @@ void do_stat_room(struct char_data *ch)
 	rm->dir_option[i]->keyword ? rm->dir_option[i]->keyword : "None", buf2,
 	rm->dir_option[i]->general_description ? rm->dir_option[i]->general_description : "  No exit description.\r\n");
   }
+
+  /* check the room for a script */
+  do_sstat_room(ch);
 }
 
 
@@ -590,6 +601,9 @@ void do_stat_object(struct char_data *ch, struct obj_data *j)
     send_to_char(ch, " None");
 
   send_to_char(ch, "\r\n");
+
+  /* check the object for a script */
+  do_sstat_object(ch, j);
 }
 
 
@@ -634,8 +648,12 @@ void do_stat_character(struct char_data *ch, struct char_data *k)
 	    GET_PRACTICES(k), int_app[GET_INT(k)].learn,
 	    wis_app[GET_WIS(k)].bonus);
     /*. Display OLC zone for immorts .*/
-    if (GET_LEVEL(k) >= LVL_IMMORT)
-      send_to_char(ch, ", OLC[%d]", GET_OLC_ZONE(k));
+    if (GET_LEVEL(k) >= LVL_BUILDER) {
+      if (GET_OLC_ZONE(k)==NOWHERE)
+        send_to_char(ch, ", OLC[%sOFF%s]", CCCYN(ch, C_NRM), CCNRM(ch, C_NRM));
+      else
+        send_to_char(ch, ", OLC[%s%d%s]", CCCYN(ch, C_NRM), GET_OLC_ZONE(k), CCNRM(ch, C_NRM));
+    }
     send_to_char(ch, "\r\n");
   }
   send_to_char(ch, "Str: [%s%d/%d%s]  Int: [%s%d%s]  Wis: [%s%d%s]  "
@@ -738,6 +756,46 @@ void do_stat_character(struct char_data *ch, struct char_data *k)
         send_to_char(ch, "sets %s", buf);
       }
       send_to_char(ch, "\r\n");
+    }
+  }
+
+  /* check mobiles for a script */
+  if (IS_NPC(k)) {
+    do_sstat_character(ch, k);
+    if (SCRIPT_MEM(k)) {
+      struct script_memory *mem = SCRIPT_MEM(k);
+      send_to_char(ch, "Script memory:\r\n  Remember             Command\r\n");
+      while (mem) {
+        struct char_data *mc = find_char(mem->id);
+        if (!mc)
+          send_to_char(ch, "  ** Corrupted!\r\n");
+        else {
+          if (mem->cmd) 
+            send_to_char(ch, "  %-20.20s%s\r\n",GET_NAME(mc),mem->cmd);
+          else 
+            send_to_char(ch, "  %-20.20s <default>\r\n",GET_NAME(mc));
+        }
+      mem = mem->next;
+      }
+    }
+  } else {
+    /* this is a PC, display their global variables */
+    if (k->script && k->script->global_vars) {
+      struct trig_var_data *tv;
+      char uname[MAX_INPUT_LENGTH];
+      void find_uid_name(char *uid, char *name);
+
+      send_to_char(ch, "Global Variables:\r\n");
+
+      /* currently, variable context for players is always 0, so it is */
+      /* not displayed here. in the future, this might change */
+      for (tv = k->script->global_vars; tv; tv = tv->next) {
+        if (*(tv->value) == UID_CHAR) {
+          find_uid_name(tv->value, uname);
+          send_to_char(ch, "    %10s:  [UID]: %s\r\n", tv->name, uname);
+        } else
+          send_to_char(ch, "    %10s:  %s\r\n", tv->name, tv->value);
+      }
     }
   }
 }
@@ -1050,6 +1108,7 @@ ACMD(do_load)
 	0, 0, TO_ROOM);
     act("$n has created $N!", FALSE, ch, 0, mob, TO_ROOM);
     act("You create $N.", FALSE, ch, 0, mob, TO_CHAR);
+    load_mtrigger(mob);
   } else if (is_abbrev(buf, "obj")) {
     struct obj_data *obj;
     obj_rnum r_num;
@@ -1066,6 +1125,7 @@ ACMD(do_load)
     act("$n makes a strange magical gesture.", TRUE, ch, 0, 0, TO_ROOM);
     act("$n has created $p!", FALSE, ch, obj, 0, TO_ROOM);
     act("You create $p.", FALSE, ch, obj, 0, TO_CHAR);
+    load_otrigger(obj);
   } else
     send_to_char(ch, "That'll have to be either 'obj' or 'mob'.\r\n");
 }
@@ -1899,6 +1959,7 @@ ACMD(do_show)
   struct descriptor_data *d;
   char field[MAX_INPUT_LENGTH], value[MAX_INPUT_LENGTH],
 	arg[MAX_INPUT_LENGTH], buf[MAX_STRING_LENGTH];
+  extern int top_of_trigt;
 
   struct show_struct {
     const char *cmd;
@@ -2022,6 +2083,7 @@ ACMD(do_show)
 	"  %5d mobiles          %5d prototypes\r\n"
 	"  %5d objects          %5d prototypes\r\n"
 	"  %5d rooms            %5d zones\r\n"
+        "  %5d triggers\r\n"
 	"  %5d large bufs\r\n"
 	"  %5d buf switches     %5d overflows\r\n",
 	i, con,
@@ -2029,6 +2091,7 @@ ACMD(do_show)
 	j, top_of_mobt + 1,
 	k, top_of_objt + 1,
 	top_of_world + 1, top_of_zone_table + 1,
+	top_of_trigt + 1,
 	buf_largecount,
 	buf_switches, buf_overflows
 	);
@@ -2185,7 +2248,7 @@ ACMD(do_show)
    { "age",		LVL_GRGOD,	BOTH,	NUMBER },
    { "height",		LVL_GOD,	BOTH,	NUMBER },
    { "weight",		LVL_GOD,	BOTH,	NUMBER },  /* 50 */
-   { "olc",		LVL_IMPL,	PC,	NUMBER },
+   { "olc",		LVL_GRGOD,	PC,	MISC },
    { "\n", 0, BOTH, MISC }
   };
 
@@ -2513,7 +2576,13 @@ int perform_set(struct char_data *ch, struct char_data *vict, int mode,
     break;
 
   case 51:
-    GET_OLC_ZONE(vict) = value;
+    if (is_abbrev(val_arg, "off")) 
+      GET_OLC_ZONE(vict) = NOWHERE;
+    else if (!is_number(val_arg)) {
+      send_to_char(ch, "Value must be either 'off' or a zone number.\r\n");
+      return (0);
+    } else
+      GET_OLC_ZONE(vict) = atoi(val_arg);
     break;
 
   default:

@@ -106,6 +106,7 @@ void	update_pos(struct char_data *victim);
 #define CRASH_FILE	0
 #define ETEXT_FILE	1
 #define ALIAS_FILE	2
+#define SCRIPT_VARS_FILE 3
 
 /* breadth-first searching */
 #define BFS_ERROR		(-1)
@@ -234,6 +235,8 @@ void	update_pos(struct char_data *victim);
 #define PLR_TOG_CHK(ch,flag) ((TOGGLE_BIT(PLR_FLAGS(ch), (flag))) & (flag))
 #define PRF_TOG_CHK(ch,flag) ((TOGGLE_BIT(PRF_FLAGS(ch), (flag))) & (flag))
 
+/* new define for quick check */
+#define DEAD(ch) (PLR_FLAGGED((ch), PLR_NOTDEADYET) || MOB_FLAGGED((ch), MOB_NOTDEADYET))
 
 /* room utils ************************************************************/
 
@@ -303,6 +306,7 @@ void	update_pos(struct char_data *victim);
 
 #define GET_POS(ch)	  ((ch)->char_specials.position)
 #define GET_IDNUM(ch)	  ((ch)->char_specials.saved.idnum)
+#define GET_ID(x)         ((x)->id)
 #define IS_CARRYING_W(ch) ((ch)->char_specials.carry_weight)
 #define IS_CARRYING_N(ch) ((ch)->char_specials.carry_items)
 #define FIGHTING(ch)	  ((ch)->char_specials.fighting)
@@ -374,8 +378,12 @@ void	update_pos(struct char_data *victim);
 #define IS_PLAYING(d)   (STATE(d) == CON_TEDIT || STATE(d) == CON_REDIT ||      \
                         STATE(d) == CON_MEDIT || STATE(d) == CON_OEDIT ||       \
                         STATE(d) == CON_ZEDIT || STATE(d) == CON_SEDIT ||       \
-                        STATE(d) == CON_CEDIT || STATE(d) == CON_PLAYING)
+                        STATE(d) == CON_CEDIT || STATE(d) == CON_PLAYING ||     \
+                        STATE(d) == CON_TRIGEDIT)
 
+#define SENDOK(ch)	(((ch)->desc || SCRIPT_CHECK((ch), MTRIG_ACT)) && \
+			(to_sleeping || AWAKE(ch)) && \
+			!PLR_FLAGGED((ch), PLR_WRITING))
 /* object utils **********************************************************/
 
 /*
