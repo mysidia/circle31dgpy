@@ -37,7 +37,7 @@ void sort_keeper_objs(struct char_data *keeper, int shop_nr);
 /* Local variables */
 struct shop_data *shop_index;
 int top_shop = -1;
-int cmd_say, cmd_tell, cmd_emote, cmd_slap, cmd_puke;
+CMD_DATA *cmd_say, *cmd_tell, *cmd_emote, *cmd_slap, *cmd_puke;
 
 /* local functions */
 char *read_shop_message(int mnum, room_vnum shr, FILE *shop_f, const char *why);
@@ -118,7 +118,7 @@ int is_ok_char(struct char_data *keeper, struct char_data *ch, int shop_nr)
 
   if (!CAN_SEE(keeper, ch)) {
     char actbuf[MAX_INPUT_LENGTH] = MSG_NO_SEE_CHAR;
-    do_say(keeper, actbuf, cmd_say, 0);
+    do_say(keeper, actbuf, cmd_say, 0, 0);
     return (FALSE);
   }
   if (IS_GOD(ch))
@@ -128,7 +128,7 @@ int is_ok_char(struct char_data *keeper, struct char_data *ch, int shop_nr)
       (IS_EVIL(ch) && NOTRADE_EVIL(shop_nr)) ||
       (IS_NEUTRAL(ch) && NOTRADE_NEUTRAL(shop_nr))) {
     snprintf(buf, sizeof(buf), "%s %s", GET_NAME(ch), MSG_NO_SELL_ALIGN);
-    do_tell(keeper, buf, cmd_tell, 0);
+    do_tell(keeper, buf, cmd_tell, 0, 0);
     return (FALSE);
   }
   if (IS_NPC(ch))
@@ -139,7 +139,7 @@ int is_ok_char(struct char_data *keeper, struct char_data *ch, int shop_nr)
       (IS_THIEF(ch) && NOTRADE_THIEF(shop_nr)) ||
       (IS_WARRIOR(ch) && NOTRADE_WARRIOR(shop_nr))) {
     snprintf(buf, sizeof(buf), "%s %s", GET_NAME(ch), MSG_NO_SELL_CLASS);
-    do_tell(keeper, buf, cmd_tell, 0);
+    do_tell(keeper, buf, cmd_tell, 0, 0);
     return (FALSE);
   }
   return (TRUE);
@@ -162,7 +162,7 @@ int is_open(struct char_data *keeper, int shop_nr, int msg)
   if (!*buf)
     return (TRUE);
   if (msg)
-    do_say(keeper, buf, cmd_tell, 0);
+    do_say(keeper, buf, cmd_tell, 0, 0);
   return (FALSE);
 }
 
@@ -458,7 +458,7 @@ struct obj_data *get_purchase_obj(struct char_data *ch, char *arg,
         char buf[MAX_INPUT_LENGTH];
 
 	snprintf(buf, sizeof(buf), shop_index[shop_nr].no_such_item1, GET_NAME(ch));
-	do_tell(keeper, buf, cmd_tell, 0);
+	do_tell(keeper, buf, cmd_tell, 0, 0);
       }
       return (NULL);
     }
@@ -531,14 +531,14 @@ void shopping_buy(char *arg, struct char_data *ch, struct char_data *keeper, int
 
     snprintf(buf, sizeof(buf), "%s A negative amount?  Try selling me something.",
 	    GET_NAME(ch));
-    do_tell(keeper, buf, cmd_tell, 0);
+    do_tell(keeper, buf, cmd_tell, 0, 0);
     return;
   }
   if (!*arg || !buynum) {
     char buf[MAX_INPUT_LENGTH];
 
     snprintf(buf, sizeof(buf), "%s What do you want to buy??", GET_NAME(ch));
-    do_tell(keeper, buf, cmd_tell, 0);
+    do_tell(keeper, buf, cmd_tell, 0, 0);
     return;
   }
   if (!(obj = get_purchase_obj(ch, arg, keeper, shop_nr, TRUE)))
@@ -548,14 +548,14 @@ void shopping_buy(char *arg, struct char_data *ch, struct char_data *keeper, int
     char actbuf[MAX_INPUT_LENGTH];
 
     snprintf(actbuf, sizeof(actbuf), shop_index[shop_nr].missing_cash2, GET_NAME(ch));
-    do_tell(keeper, actbuf, cmd_tell, 0);
+    do_tell(keeper, actbuf, cmd_tell, 0, 0);
 
     switch (SHOP_BROKE_TEMPER(shop_nr)) {
     case 0:
-      do_action(keeper, strcpy(actbuf, GET_NAME(ch)), cmd_puke, 0);	/* strcpy: OK (MAX_NAME_LENGTH < MAX_INPUT_LENGTH) */
+      do_action(keeper, strcpy(actbuf, GET_NAME(ch)), cmd_puke, 0, 0);	/* strcpy: OK (MAX_NAME_LENGTH < MAX_INPUT_LENGTH) */
       return;
     case 1:
-      do_echo(keeper, strcpy(actbuf, "smokes on his joint."), cmd_emote, SCMD_EMOTE);	/* strcpy: OK */
+      do_echo(keeper, strcpy(actbuf, "smokes on his joint."), cmd_emote, 0, SCMD_EMOTE);	/* strcpy: OK */
       return;
     default:
       return;
@@ -608,7 +608,7 @@ void shopping_buy(char *arg, struct char_data *ch, struct char_data *keeper, int
       snprintf(buf, sizeof(buf), "%s You can only carry %d.", GET_NAME(ch), bought);
     else
       snprintf(buf, sizeof(buf), "%s Something screwy only gave you %d.", GET_NAME(ch), bought);
-    do_tell(keeper, buf, cmd_tell, 0);
+    do_tell(keeper, buf, cmd_tell, 0, 0);
   }
   if (!IS_GOD(ch))
     GET_GOLD(keeper) += goldamt;
@@ -619,7 +619,7 @@ void shopping_buy(char *arg, struct char_data *ch, struct char_data *keeper, int
   act(tempbuf, FALSE, ch, obj, 0, TO_ROOM);
 
   snprintf(tempbuf, sizeof(tempbuf), shop_index[shop_nr].message_buy, GET_NAME(ch), goldamt);
-  do_tell(keeper, tempbuf, cmd_tell, 0);
+  do_tell(keeper, tempbuf, cmd_tell, 0, 0);
 
   send_to_char(ch, "You now have %s.\r\n", tempstr);
 
@@ -642,7 +642,7 @@ struct obj_data *get_selling_obj(struct char_data *ch, char *name, struct char_d
       char tbuf[MAX_INPUT_LENGTH];
 
       snprintf(tbuf, sizeof(tbuf), shop_index[shop_nr].no_such_item2, GET_NAME(ch));
-      do_tell(keeper, tbuf, cmd_tell, 0);
+      do_tell(keeper, tbuf, cmd_tell, 0, 0);
     }
     return (NULL);
   }
@@ -667,7 +667,7 @@ struct obj_data *get_selling_obj(struct char_data *ch, char *name, struct char_d
     snprintf(buf, sizeof(buf), "%s An error has occurred.", GET_NAME(ch));
     break;
   }
-  do_tell(keeper, buf, cmd_tell, 0);
+  do_tell(keeper, buf, cmd_tell, 0, 0);
   return (NULL);
 }
 
@@ -749,14 +749,14 @@ void shopping_sell(char *arg, struct char_data *ch, struct char_data *keeper, in
     char buf[MAX_INPUT_LENGTH];
 
     snprintf(buf, sizeof(buf), "%s A negative amount?  Try buying something.", GET_NAME(ch));
-    do_tell(keeper, buf, cmd_tell, 0);
+    do_tell(keeper, buf, cmd_tell, 0, 0);
     return;
   }
   if (!*arg || !sellnum) {
     char buf[MAX_INPUT_LENGTH];
 
     snprintf(buf, sizeof(buf), "%s What do you want to sell??", GET_NAME(ch));
-    do_tell(keeper, buf, cmd_tell, 0);
+    do_tell(keeper, buf, cmd_tell, 0, 0);
     return;
   }
   one_argument(arg, name);
@@ -767,7 +767,7 @@ void shopping_sell(char *arg, struct char_data *ch, struct char_data *keeper, in
     char buf[MAX_INPUT_LENGTH];
 
     snprintf(buf, sizeof(buf), shop_index[shop_nr].missing_cash1, GET_NAME(ch));
-    do_tell(keeper, buf, cmd_tell, 0);
+    do_tell(keeper, buf, cmd_tell, 0, 0);
     return;
   }
   while (obj && GET_GOLD(keeper) + SHOP_BANK(shop_nr) >= sell_price(obj, shop_nr, keeper, ch) && sold < sellnum) {
@@ -792,7 +792,7 @@ void shopping_sell(char *arg, struct char_data *ch, struct char_data *keeper, in
     else
       snprintf(buf, sizeof(buf), "%s Something really screwy made me buy %d.", GET_NAME(ch), sold);
 
-    do_tell(keeper, buf, cmd_tell, 0);
+    do_tell(keeper, buf, cmd_tell, 0, 0);
   }
   GET_GOLD(ch) += goldamt;
 
@@ -801,7 +801,7 @@ void shopping_sell(char *arg, struct char_data *ch, struct char_data *keeper, in
   act(tempbuf, FALSE, ch, obj, 0, TO_ROOM);
 
   snprintf(tempbuf, sizeof(tempbuf), shop_index[shop_nr].message_sell, GET_NAME(ch), goldamt);
-  do_tell(keeper, tempbuf, cmd_tell, 0);
+  do_tell(keeper, tempbuf, cmd_tell, 0, 0);
 
   send_to_char(ch, "The shopkeeper now has %s.\r\n", tempstr);
 
@@ -823,7 +823,7 @@ void shopping_value(char *arg, struct char_data *ch, struct char_data *keeper, i
 
   if (!*arg) {
     snprintf(buf, sizeof(buf), "%s What do you want me to evaluate??", GET_NAME(ch));
-    do_tell(keeper, buf, cmd_tell, 0);
+    do_tell(keeper, buf, cmd_tell, 0, 0);
     return;
   }
   one_argument(arg, name);
@@ -831,7 +831,7 @@ void shopping_value(char *arg, struct char_data *ch, struct char_data *keeper, i
     return;
 
   snprintf(buf, sizeof(buf), "%s I'll give you %d gold coins for that!", GET_NAME(ch), sell_price(obj, shop_nr, keeper, ch));
-  do_tell(keeper, buf, cmd_tell, 0);
+  do_tell(keeper, buf, cmd_tell, 0, 0);
 }
 
 
@@ -949,11 +949,11 @@ SPECIAL(shop_keeper)
     return (FALSE);
 
   if (SHOP_FUNC(shop_nr))	/* Check secondary function */
-    if ((SHOP_FUNC(shop_nr)) (ch, me, cmd, argument))
+    if ((SHOP_FUNC(shop_nr)) (ch, me, commandp, argument, 0))
       return (TRUE);
 
   if (keeper == ch) {
-    if (cmd)
+    if (commandp)
       SHOP_SORT(shop_nr) = 0;	/* Safety in case "drop all" */
     return (FALSE);
   }
@@ -969,7 +969,7 @@ SPECIAL(shop_keeper)
     snprintf(argm, sizeof(argm), "$N shouts '%s'", MSG_NO_STEAL_HERE);
     act(argm, FALSE, ch, 0, keeper, TO_CHAR);
 
-    do_action(keeper, GET_NAME(ch), cmd_slap, 0);
+    do_action(keeper, GET_NAME(ch), cmd_slap, 0, 0);
     return (TRUE);
   }
 
@@ -1006,9 +1006,9 @@ int ok_damage_shopkeeper(struct char_data *ch, struct char_data *victim)
       char buf[MAX_INPUT_LENGTH];
 
       snprintf(buf, sizeof(buf), "%s %s", GET_NAME(ch), MSG_CANT_KILL_KEEPER);
-      do_tell(victim, buf, cmd_tell, 0);
+      do_tell(victim, buf, cmd_tell, 0, 0);
 
-      do_action(victim, GET_NAME(ch), cmd_slap, 0);
+      do_action(victim, GET_NAME(ch), cmd_slap, 0, 0);
       return (FALSE);
     }
 
@@ -1109,14 +1109,14 @@ int read_type_list(FILE *shop_f, struct shop_buy_data *list,
     ptr = buf;
     if (num == NOTHING) {
       sscanf(buf, "%d", &num);
-      while (!isdigit(*ptr))
+      while (*ptr && !isdigit(*ptr))
 	ptr++;
       while (isdigit(*ptr))
 	ptr++;
     }
     while (isspace(*ptr))
       ptr++;
-    while (isspace(*(END_OF(ptr) - 1)))
+    while (*ptr && isspace(*(END_OF(ptr) - 1)))
       *(END_OF(ptr) - 1) = '\0';
     error += add_to_list(list, LIST_TRADE, &len, &num);
     if (*ptr)

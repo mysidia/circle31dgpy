@@ -23,7 +23,7 @@
 #include "screen.h"
 #include "house.h"
 #include "constants.h"
-#include "dg_scripts.h"
+#include "genscript.h"
 
 /* extern variables */
 extern struct spell_info_type spell_info[];
@@ -104,7 +104,7 @@ ACMD(do_save)
     return;
 
   /* Only tell the char we're saving if they actually typed "save" */
-  if (cmd) {
+  if (commandp) {
     /*
      * This prevents item duplication by two PC's using coordinated saves
      * (or one PC with a house) and system crashes. Note that houses are
@@ -251,9 +251,13 @@ ACMD(do_steal)
 	if ((GET_POS(vict) > POS_STUNNED)) {
 	  send_to_char(ch, "Steal the equipment now?  Impossible!\r\n");
 	  return;
-	} else {
-          if (!give_otrigger(obj, vict, ch) || !obj ||  /* obj might be purged */
-              !receive_mtrigger(ch, vict, obj) || !obj) {  /* obj might be purged */
+	} else {		
+	  if (
+		!script_give_o_trigger(&obj, &vict, &ch) || !obj /* obj might be purged */
+		|| !check_mob_hooks(HOOK_RECEIVED_ITEM, ch_script_cont(vict),
+		ch, obj_to_param(obj), SNull) || !obj
+		)
+	  {
             send_to_char(ch, "Impossible!\r\n");
             return;
           }
@@ -273,8 +277,10 @@ ACMD(do_steal)
 	act("$n tries to steal something from $N.", TRUE, ch, 0, vict, TO_NOTVICT);
       } else {			/* Steal the item */
 	if (IS_CARRYING_N(ch) + 1 < CAN_CARRY_N(ch)) {
-          if (!give_otrigger(obj, vict, ch) || !obj ||  /* obj might be purged */
-              !receive_mtrigger(ch, vict, obj) || !obj) {  /* obj might be purged */
+          if (!script_give_o_trigger(&obj, &vict, &ch) || !obj ||  /* obj might be purged */
+		!check_mob_hooks(HOOK_RECEIVED_ITEM, ch_script_cont(ch), vict,
+		                 obj_to_param(obj), SNull)	
+              || !obj) {  /* obj might be purged */
             send_to_char(ch, "Impossible!\r\n");
             return;
           }

@@ -7,6 +7,8 @@
 *  $Author: galion $
 *  $Date: 1996/08/05 03:27:07 $
 *  $Revision: 3.12 $
+*
+* MODIFIED: py.wcall added for python scripts
 **************************************************************************/
 
 #include "conf.h"
@@ -15,17 +17,18 @@
 
 #include "structs.h"
 #include "screen.h"
-#include "dg_scripts.h"
 #include "utils.h"
 #include "comm.h"
 #include "interpreter.h"
 #include "handler.h"
 #include "db.h"
 #include "constants.h"
+#include "genscript.h"
 
 extern struct room_data *world;
 extern const char *dirs[];
 extern struct zone_data *zone_table;
+extern const struct wld_command_info wld_cmd_info[];
 
 void send_char_pos(struct char_data *ch, int dam);
 void die(struct char_data * ch, struct char_data * killer);
@@ -270,6 +273,12 @@ WCMD(do_wdoor)
     }
 }
 
+WCMD(do_py_wcall)
+{
+#ifdef HAVE_PYTHON
+	python_wld_call(room, argument, wld_cmd_info[cmd].command, subcmd);
+#endif
+}
 
 WCMD(do_wteleport)
 {
@@ -303,7 +312,7 @@ WCMD(do_wteleport)
               continue;
             char_from_room(ch);
             char_to_room(ch, target);
-            enter_wtrigger(&world[IN_ROOM(ch)], ch, -1);
+            script_char_enter_room_trigger(&world[IN_ROOM(ch)], ch, -1);
         }
     }
   
@@ -313,7 +322,7 @@ WCMD(do_wteleport)
           if (valid_dg_target(ch, DG_ALLOW_GODS)) {
             char_from_room(ch);
             char_to_room(ch, target);
-            enter_wtrigger(&world[IN_ROOM(ch)], ch, -1);
+            script_char_enter_room_trigger(&world[IN_ROOM(ch)], ch, -1);
           }
         }
         
@@ -343,7 +352,7 @@ WCMD(do_wforce)
       
             if (valid_dg_target(ch, 0))
             {
-                command_interpreter(ch, line);
+                command_interpreter(ch, line, CMDPASS_SCRIPTFORCE);
             }
         }
     }
@@ -354,7 +363,7 @@ WCMD(do_wforce)
         {
             if (valid_dg_target(ch, 0))
             {
-                command_interpreter(ch, line);
+                command_interpreter(ch, line, CMDPASS_SCRIPTFORCE);
             }
         }
     
@@ -453,7 +462,9 @@ WCMD(do_wload)
             return;
         }
         char_to_room(mob, real_room(room->number));
-        load_mtrigger(mob);
+	if (IS_SET(script_mob_loaded(&mob), SCRIPT_RET_SUBJECT_DEAD)) {
+		return;
+	}
     }
   
     else if (is_abbrev(arg1, "obj")) {
@@ -463,7 +474,9 @@ WCMD(do_wload)
         }
 
         obj_to_room(object, real_room(room->number)); 
-        load_otrigger(object);
+        if (IS_SET(script_obj_loaded(&object), SCRIPT_RET_OBJECT_DEAD)) {
+                return;
+        }
     }
 
     else
@@ -546,6 +559,7 @@ const struct wld_command_info wld_cmd_info[] = {
     { "wzoneecho "  , do_wzoneecho , 0 },
     { "wdamage "    , do_wdamage,    0 },
     { "wat "        , do_wat,        0 },
+    { "py.wcall"       , do_py_wcall,      0 },
     { "\n", 0, 0 }        /* this must be last */
 };
 

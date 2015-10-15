@@ -20,7 +20,7 @@
 #include "db.h"
 #include "screen.h"
 #include "improved-edit.h"
-#include "dg_scripts.h"
+#include "genscript.h"
 
 /* local functions */
 void perform_tell(struct char_data *ch, struct char_data *vict, char *arg);
@@ -56,8 +56,7 @@ ACMD(do_say)
     }
   }
   /* trigger check */
-  speech_mtrigger(ch, argument);
-  speech_wtrigger(ch, argument);
+  check_null_hooks(HOOK_SPEECH, ch, str_to_param(argument), SNull);
 }
 
 

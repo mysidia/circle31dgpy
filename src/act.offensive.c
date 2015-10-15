@@ -115,7 +115,8 @@ ACMD(do_hit)
 				 * player */
     }
     if ((GET_POS(ch) == POS_STANDING) && (vict != FIGHTING(ch))) {
-      hit(ch, vict, TYPE_UNDEFINED);
+      if (hit(ch, vict, TYPE_UNDEFINED) < -1)
+	      return;
       WAIT_STATE(ch, PULSE_VIOLENCE + 2);
     } else
       send_to_char(ch, "You do the best you can!\r\n");
@@ -130,7 +131,7 @@ ACMD(do_kill)
   struct char_data *vict;
 
   if (GET_LEVEL(ch) < LVL_IMPL || IS_NPC(ch)) {
-    do_hit(ch, argument, cmd, subcmd);
+    do_hit(ch, argument, commandp, cmd_flags, subcmd);
     return;
   }
   one_argument(argument, arg);
@@ -162,6 +163,10 @@ ACMD(do_backstab)
   if (IS_NPC(ch) || !GET_SKILL(ch, SKILL_BACKSTAB)) {
     send_to_char(ch, "You have no idea how to do that.\r\n");
     return;
+  }
+
+  if (GET_POS(ch) < POS_STANDING) {
+	  return;
   }
 
   one_argument(argument, buf);
@@ -198,10 +203,14 @@ ACMD(do_backstab)
   percent = rand_number(1, 101);	/* 101% is a complete failure */
   prob = GET_SKILL(ch, SKILL_BACKSTAB);
 
-  if (AWAKE(vict) && (percent > prob))
-    damage(ch, vict, 0, SKILL_BACKSTAB);
-  else
-    hit(ch, vict, SKILL_BACKSTAB);
+  if (AWAKE(vict) && (percent > prob)) {
+    if (damage(ch, vict, 0, SKILL_BACKSTAB) < -1)
+	    return;
+  }
+  else {
+    if (hit(ch, vict, SKILL_BACKSTAB) < -1) 
+	    return;
+  }
 
   WAIT_STATE(ch, 2 * PULSE_VIOLENCE);
 }
@@ -238,7 +247,7 @@ ACMD(do_order)
 	act("$n has an indifferent look.", FALSE, vict, 0, 0, TO_ROOM);
       else {
 	send_to_char(ch, "%s", CONFIG_OK);
-	command_interpreter(vict, message);
+	command_interpreter(vict, message, CMDPASS_ORDER_INDIV);
       }
     } else {			/* This is order "followers" */
       char buf[MAX_STRING_LENGTH];
@@ -250,7 +259,7 @@ ACMD(do_order)
 	if (IN_ROOM(ch) == IN_ROOM(k->follower))
 	  if (AFF_FLAGGED(k->follower, AFF_CHARM)) {
 	    found = TRUE;
-	    command_interpreter(k->follower, message);
+	    command_interpreter(k->follower, message, CMDPASS_ORDER_FOLLOWERS);
 	  }
       }
       if (found)

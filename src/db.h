@@ -103,6 +103,9 @@
 #define HCONTROL_FILE	LIB_ETC"hcontrol"  /* for the house system	*/
 #define TIME_FILE	LIB_ETC"time"	   /* for calendar system	*/
 
+#define COMMANDS_FILE	LIB_ETC"commands"
+
+
 /* public procedures in db.c */
 void	boot_db(void);
 void	destroy_db(void);

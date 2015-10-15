@@ -330,3 +330,11 @@
 /* Check for a prototype to write. */
 #undef NEED_WRITE_PROTO
 
+#undef HAVE_PYTHON2_3_PYTHON_H
+#undef HAVE_PYTHON2_2_PYTHON_H
+#undef HAVE_PYTHON
+
+#ifndef HAVE_DGSCRIPT
+#undef HAVE_DGSCRIPT
+#endif
+

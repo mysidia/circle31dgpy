@@ -1,0 +1,49 @@
+
+THIS IS API information for the bottled object class
+
+ mud.Object
+
+See API.txt for more info.
+
+Note: Python code should not ever instantiate mud.Object objects directly.
+
+Use
+    server.py_Bottle_Obj(obj)
+
+To convert a RAW server.character to a new bottled character.
+
+There is no method provided to convert a bottled character back to a RAW server.character.
+
+Provided Methods with example usages:
+
+NONE YET
+
+ATTRIBUTES (Mostly Read-ONLY)
+
+  vnum
+  in_room <- Returns a mud.Room object
+  name <-  returns obj->name from the mud
+  description
+  short_description
+  action_description
+  carried_by
+  worn_by
+  in_obj <- returns a mud.Object or None
+  contains <- returns None or a python list of mud.Object
+  id
+  worn_on
+  type
+  level
+  wear
+  extra_flags
+  weight
+  cost
+  cost_per_day
+  timer
+  bitvector
+  value <- Returns a python list of integer values
+  affected <- Returns a list of dictionaries of this form:
+              [ {"location" : 3, "modifier": 4}, {"location" : 6, "modifier"2"} ]
+
+              It may be an empty list, or it may have up to MAX_OBJ_AFFECT
+              elements.

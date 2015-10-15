@@ -1,0 +1,92 @@
+
+THIS IS API information for the bottled character class
+
+ mud.Character
+
+See API.txt for more info.
+
+Note: Python code should not ever instantiate mud.Character objects directly.
+
+Use
+
+    server.py_Bottle_Char(ch)
+
+To convert a RAW server.character to a bottled character.
+
+There is no method provided to convert a bottled character back to a RAW server.character.
+
+Provided Methods with example usages:
+
+ send("text here")      <-- Send a line to the given character
+ writeln("text")        <-- Same as send
+ write("text")          <-- Write text to the character, without adding 
+                            CR-LF to the end
+ get_name()             <-- Get the display name for the character
+ get_level()
+ get_age()
+ is_affected(flags)     <-- Are they affected?
+     Ex: if ch.is_affected(AFF_SANCTUARY) : ch.send("You have sanc!")
+ mob_flagged(flags)     <-- Do they have mob flag XXX?
+     Ex: if ch.mob_flagged(MOB_CHARMED) : ...
+ plr_flagged(flags)     <-- Do they have certain player flags?
+ prf_flagged(flags)
+ can_see(target)        <-- Can they see another character object?
+ find_char(name)        <-- Find a char that ch can see in this room
+ find_player
+ find_char_world
+ find_player_world
+
+ ATTRIBUTES (Mostly Read-ONLY)
+      isnpc 
+      ispc
+      isimm
+      fighting <- a character object
+      age   <-  a dictionary structure of form {"hours" : 3, "day" : 1, "month" : 2,
+                                                "year" : 4}
+      display_name
+      hmhr <- him/her string
+      hssh <- he/she string
+      hit <- RW
+      mana  <- RW
+      move <- RW
+      max_hit <- RW
+      max_mana <- RW
+      max_move <- RW
+      level
+      in_room_num <-- returns NUMBER
+      was_in_room_num <-- returns NUMBER, RW
+      pc_name <- returns string GET_PC_NAME
+      title
+      pfilepos
+      real_level <- GET_REAL_LEVEL
+      chclass
+      hometown
+      height
+      weight
+      sex
+      str
+      add
+      dex
+      int
+      wis
+      con
+      cha
+      exp
+      ac
+      gold <- RW
+      bank_gold <- RW
+      hitroll <- RW
+      damroll <- RW
+      position <- RW
+      id
+      idnum <- PC ONLY
+      carrying_w
+      carrying_n
+      can_carry_w
+      can_carry_n
+      login_time <- time_t
+      played_time <- time_t
+      affected <- long integer, RW
+      alignment <- int, RW
+      
+

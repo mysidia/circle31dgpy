@@ -32,7 +32,6 @@
 
 #include "structs.h"
 #include "screen.h"
-#include "dg_scripts.h"
 #include "db.h"
 #include "utils.h"
 #include "handler.h"
@@ -40,6 +39,7 @@
 #include "comm.h"
 #include "spells.h"
 #include "constants.h"
+#include "genscript.h"
 
 
 extern struct descriptor_data *descriptor_list;
@@ -379,7 +379,9 @@ ACMD(do_mload)
             return;
         }
         char_to_room(mob, IN_ROOM(ch));
-        load_mtrigger(mob);
+	if (IS_SET(script_mob_loaded(&mob), SCRIPT_RET_SUBJECT_DEAD)) {
+		return;
+	}
     }
   
     else if (is_abbrev(arg1, "obj")) {
@@ -392,7 +394,10 @@ ACMD(do_mload)
         } else {
             obj_to_room(object, IN_ROOM(ch));
         }
-        load_otrigger(object);
+
+        if (IS_SET(script_obj_loaded(&object), SCRIPT_RET_OBJECT_DEAD)) {
+            return;
+        }
     }
 
     else
@@ -504,7 +509,7 @@ ACMD(do_mgoto)
     
     char_from_room(ch);
     char_to_room(ch, location);
-    enter_wtrigger(&world[IN_ROOM(ch)], ch, -1);
+    script_char_enter_room_trigger(&world[IN_ROOM(ch)], ch, -1);
 }
 
 
@@ -538,7 +543,7 @@ ACMD(do_mat)
     original = IN_ROOM(ch);
     char_from_room(ch);
     char_to_room(ch, location);
-    command_interpreter(ch, argument);
+    command_interpreter(ch, argument, CMDPASS_AT);
     
     /*
      * See if 'ch' still exists before continuing!
@@ -595,7 +600,7 @@ ACMD(do_mteleport)
       if (valid_dg_target(vict, DG_ALLOW_GODS)) {
         char_from_room(vict);
         char_to_room(vict, target);
-        enter_wtrigger(&world[IN_ROOM(ch)], ch, -1);
+        script_char_enter_room_trigger(&world[IN_ROOM(ch)], ch, -1);
       }
     }
   } else {
@@ -612,7 +617,7 @@ ACMD(do_mteleport)
     if (valid_dg_target(ch, DG_ALLOW_GODS)) {
       char_from_room(vict);
       char_to_room(vict, target);
-      enter_wtrigger(&world[IN_ROOM(ch)], ch, -1);
+      script_char_enter_room_trigger(&world[IN_ROOM(ch)], ch, -1);
     }
   }
 }
@@ -704,7 +709,7 @@ ACMD(do_mforce)
                 vch = i->character;
                 if (GET_LEVEL(vch) < GET_LEVEL(ch) && CAN_SEE(ch, vch) &&
                     valid_dg_target(vch, 0)) {
-                    command_interpreter(vch, argument);
+                    command_interpreter(vch, argument, CMDPASS_SCRIPTFORCE);
                 }
             }
         }
@@ -727,7 +732,7 @@ ACMD(do_mforce)
         }
     
         if (valid_dg_target(victim, 0))
-            command_interpreter(victim, argument);
+            command_interpreter(victim, argument, CMDPASS_SCRIPTFORCE);
     }
 }
 

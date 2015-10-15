@@ -4,28 +4,28 @@ a bug~
 This object is BAD!  If you see it, there must be a bug in the game.  Please
 report it immediately using the BUG command.~
 ~
-13 0 0
+13 0 0 0
 0 0 0 0
-0 0 0
+0 0 0 0
 #1
 wings~
 a pair of wings~
 A pair of wings is sitting here.~
 ~
-9 0 17
+9 0 ae 0
 6 0 0 0
-0 0 200
+0 0 200 0
 #10
 waybread bread~
 a waybread~
 Some waybread has been put here.~
 ~
-19 g 1
+19 g a 0
 24 0 0 0
-1 50 50
+1 50 50 0
 E
 waybread bread~
 The waybread is the traditional feed of elves when travelling, they
 call it lembas.  It is said to refresh the weary traveler greatly.
 ~
-$
+$~

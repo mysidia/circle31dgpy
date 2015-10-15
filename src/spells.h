@@ -220,6 +220,7 @@ void	spellname(int level, struct char_data *ch, \
 
 #define MANUAL_SPELL(spellname)	spellname(level, caster, cvict, ovict);
 
+#ifndef SWIG
 ASPELL(spell_create_water);
 ASPELL(spell_recall);
 ASPELL(spell_teleport);
@@ -230,6 +231,7 @@ ASPELL(spell_information);
 ASPELL(spell_identify);
 ASPELL(spell_enchant_weapon);
 ASPELL(spell_detect_poison);
+#endif
 
 /* basic magic calling functions */
 

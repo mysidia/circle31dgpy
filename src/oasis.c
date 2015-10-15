@@ -107,27 +107,27 @@ ACMD(do_oasis)
       break;
       
     case SCMD_OASIS_CEDIT:
-      do_oasis_cedit(ch, argument, cmd, subcmd);
+      do_oasis_cedit(ch, argument, commandp, cmd_flags, subcmd);
       break;
       
     case SCMD_OASIS_ZEDIT:
-      do_oasis_zedit(ch, argument, cmd, subcmd);
+      do_oasis_zedit(ch, argument, commandp, cmd_flags, subcmd);
       break;
     
     case SCMD_OASIS_REDIT:
-      do_oasis_redit(ch, argument, cmd, subcmd);
+      do_oasis_redit(ch, argument, commandp, cmd_flags, subcmd);
       break;
     
     case SCMD_OASIS_OEDIT:
-      do_oasis_oedit(ch, argument, cmd, subcmd);
+      do_oasis_oedit(ch, argument, commandp, cmd_flags, subcmd);
       break;
       
     case SCMD_OASIS_MEDIT:
-      do_oasis_medit(ch, argument, cmd, subcmd);
+      do_oasis_medit(ch, argument, commandp, cmd_flags, subcmd);
       break;
       
     case SCMD_OASIS_SEDIT:
-      do_oasis_sedit(ch, argument, cmd, subcmd);
+      do_oasis_sedit(ch, argument, commandp, cmd_flags, subcmd);
       break;
       
     case SCMD_OASIS_RLIST:
@@ -136,11 +136,11 @@ ACMD(do_oasis)
     case SCMD_OASIS_SLIST:
     case SCMD_OASIS_ZLIST:
     case SCMD_OASIS_TLIST:
-      do_oasis_list(ch, argument, cmd, subcmd);
+      do_oasis_list(ch, argument, commandp, cmd_flags, subcmd);
       break;
     
     case SCMD_OASIS_TRIGEDIT:
-      do_oasis_trigedit(ch, argument, cmd, subcmd);
+      do_oasis_trigedit(ch, argument, commandp, cmd_flags, subcmd);
       break;
       
     default:

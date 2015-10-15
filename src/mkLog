@@ -1,0 +1,84 @@
+make ../bin/circle
+make[1]: Entering directory `/usr/src/circ/circle_script/src'
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o act.comm.o act.comm.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o act.informative.o act.informative.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o act.item.o act.item.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o act.movement.o act.movement.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o act.offensive.o act.offensive.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o act.other.o act.other.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o act.social.o act.social.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o act.wizard.o act.wizard.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o alias.o alias.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o ban.o ban.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o boards.o boards.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o castle.o castle.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o cedit.o cedit.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o class.o class.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o comm.o comm.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o config.o config.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o constants.o constants.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o db.o db.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o fight.o fight.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o genmob.o genmob.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o genobj.o genobj.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o genolc.o genolc.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o genscript.o genscript.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o genshp.o genshp.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o genwld.o genwld.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o genzon.o genzon.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o graph.o graph.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o handler.o handler.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o house.o house.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o improved-edit.o improved-edit.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o interpreter.o interpreter.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o limits.o limits.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o magic.o magic.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o mail.o mail.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o python_script.o python_script.c
+py_mudstructs_wrap.c:187: warning: `SWIG_Python_TypeDynamicCast' defined but not used
+py_mudstructs_wrap.c:199: warning: `SWIG_Python_TypeName' defined but not used
+py_mudstructs_wrap.c:205: warning: `SWIG_Python_TypeQuery' defined but not used
+py_mudstructs_wrap.c:551: warning: `SWIG_Python_MustGetPtr' defined but not used
+py_mudstructs_wrap.c:559: warning: `SWIG_Python_ConvertPacked' defined but not used
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o medit.o medit.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o mobact.o mobact.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o modify.o modify.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o oasis.o oasis.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o oasis_copy.o oasis_copy.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o oasis_delete.o oasis_delete.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o oasis_list.o oasis_list.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o objsave.o objsave.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o oedit.o oedit.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o olc.o olc.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o random.o random.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o redit.o redit.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o sedit.o sedit.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o shop.o shop.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o spec_assign.o spec_assign.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o spec_procs.o spec_procs.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o spell_parser.o spell_parser.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o spells.o spells.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o tedit.o tedit.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o utils.o utils.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o weather.o weather.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o zedit.o zedit.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o bsd-snprintf.o bsd-snprintf.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o dg_comm.o dg_comm.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o dg_db_scripts.o dg_db_scripts.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o dg_event.o dg_event.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o dg_handler.o dg_handler.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o dg_mobcmd.o dg_mobcmd.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o dg_misc.o dg_misc.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o dg_objcmd.o dg_objcmd.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o dg_scripts.o dg_scripts.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o dg_triggers.o dg_triggers.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o dg_wldcmd.o dg_wldcmd.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o dg_olc.o dg_olc.c
+/home/sw/bin/gcc -g -I/usr/include/python2.3 -Wall -fno-strict-aliasing -fbounds-checking    -c -o context_help.o context_help.c
+/home/sw/bin/gcc -o ../bin/circle  act.comm.o act.informative.o act.item.o act.movement.o act.offensive.o act.other.o act.social.o act.wizard.o alias.o ban.o boards.o castle.o cedit.o class.o comm.o config.o constants.o db.o fight.o genmob.o genobj.o genolc.o genscript.o genshp.o genwld.o genzon.o graph.o handler.o house.o improved-edit.o interpreter.o limits.o magic.o mail.o python_script.o medit.o mobact.o modify.o oasis.o oasis_copy.o oasis_delete.o oasis_list.o objsave.o oedit.o olc.o random.o redit.o sedit.o shop.o spec_assign.o spec_procs.o spell_parser.o spells.o tedit.o utils.o weather.o zedit.o bsd-snprintf.o dg_comm.o dg_db_scripts.o dg_event.o dg_handler.o dg_mobcmd.o dg_misc.o dg_objcmd.o dg_scripts.o dg_triggers.o dg_wldcmd.o dg_olc.o context_help.o -lcrypt  -lpython2.3 -fbounds-checking
+python_script.o(.text+0xb3509): In function `_wrap_py_check_command':
+/usr/src/circ/circle_script/src/py_mudstructs_wrap.c:23672: undefined reference to `py_check_command'
+collect2: ld returned 1 exit status
+make[1]: *** [../bin/circle] Error 1
+make[1]: Leaving directory `/usr/src/circ/circle_script/src'
+make: *** [all] Error 2

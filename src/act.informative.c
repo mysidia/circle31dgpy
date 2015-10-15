@@ -37,7 +37,7 @@ extern char *wizlist;
 extern char *immlist;
 extern char *policies;
 extern char *handbook;
-extern char *class_abbrevs[];
+extern const char *class_abbrevs[];
 
 /* extern functions */
 ACMD(do_action);
@@ -1290,8 +1290,12 @@ ACMD(do_gen_ps)
     break;
   case SCMD_VERSION:
     send_to_char(ch, "%s\r\n", circlemud_version);
-    send_to_char(ch, "%s\r\n", DG_SCRIPT_VERSION);
     send_to_char(ch, "%s\r\n", oasisolc_version);
+    send_to_char(ch, "%s\r\n", DG_SCRIPT_VERSION);
+    send_to_char(ch, "%s\r\n", GENSCRIPTS_VERSION_STRING);
+#ifdef HAVE_PYTHON
+    send_to_char(ch, "%s\r\n", PYSCRIPTS_VERSION_STRING);
+#endif
     break;
   case SCMD_WHOAMI:
     send_to_char(ch, "%s\r\n", GET_NAME(ch));
@@ -1630,7 +1634,7 @@ ACMD(do_toggle)
 	  ctypes[COLOR_LEV(ch)]);
 }
 
-
+#if 0
 int sort_commands_helper(const void *a, const void *b)
 {
   return strcmp(cmd_info[*(const int *)a].command, cmd_info[*(const int *)b].command);
@@ -1653,14 +1657,17 @@ void sort_commands(void)
   /* Don't sort the RESERVED or \n entries. */
   qsort(cmd_sort_info + 1, num_of_cmds - 2, sizeof(int), sort_commands_helper);
 }
+#endif
 
 
 ACMD(do_commands)
 {
-  int no, i, cmd_num;
+  int no;
   int wizhelp = 0, socials = 0;
   struct char_data *vict;
   char arg[MAX_INPUT_LENGTH];
+  extern struct _command_head sorted_cmd_list;
+  CMD_DATA* cmd;
 
   one_argument(argument, arg);
 
@@ -1686,20 +1693,20 @@ ACMD(do_commands)
 	  socials ? "socials" : "commands",
 	  vict == ch ? "you" : GET_NAME(vict));
 
-  /* cmd_num starts at 1, not 0, to remove 'RESERVED' */
-  for (no = 1, cmd_num = 1; cmd_info[cmd_sort_info[cmd_num]].command[0] != '\n'; cmd_num++) {
-    i = cmd_sort_info[cmd_num];
 
-    if (cmd_info[i].minimum_level < 0 || GET_LEVEL(vict) < cmd_info[i].minimum_level)
-      continue;
+  for(no = 1, cmd =  LIST_FIRST(&sorted_cmd_list); cmd; cmd = LIST_NEXT(cmd, cmd_sorted_lst))
+  {
+      if (!str_cmp(cmd->name, "RESERVED"))
+	      continue;
+      if (cmd->minimum_level < 0 || GET_LEVEL(vict) < cmd->minimum_level)
+	      continue;
+      if ((cmd->minimum_level >= LVL_IMMORT) != wizhelp)
+	      continue;
 
-    if ((cmd_info[i].minimum_level >= LVL_IMMORT) != wizhelp)
-      continue;
-
-    if (!wizhelp && socials != (cmd_info[i].command_pointer == do_action || cmd_info[i].command_pointer == do_insult))
-      continue;
-
-    send_to_char(ch, "%-11s%s", cmd_info[i].command, no++ % 7 == 0 ? "\r\n" : "");
+      if ((cmd->native_callfun == do_action) != socials)
+	      continue;
+      send_to_char(ch, "%-11s%s", cmd->name, no++ % 7 == 0 ? "\r\n" : "");
+	  
   }
 
   if (no % 7 != 1)

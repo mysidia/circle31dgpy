@@ -39,7 +39,7 @@ extern int mini_mud;
 mob_vnum castle_virtual(mob_vnum offset);
 room_rnum castle_real_room(room_vnum roomoffset);
 struct char_data *find_npc_by_name(struct char_data *chAtChar, const char *pszName, int iLen);
-int block_way(struct char_data *ch, int cmd, char *arg, room_vnum iIn_room, int iProhibited_direction);
+int block_way(struct char_data *ch, CMD_DATA *commandp, char *arg, room_vnum iIn_room, int iProhibited_direction);
 void assign_kings_castle(void);
 int member_of_staff(struct char_data *chChar);
 int member_of_royal_guard(struct char_data *chChar);
@@ -49,8 +49,8 @@ int banzaii(struct char_data *ch);
 int do_npc_rescue(struct char_data *ch_hero, struct char_data *ch_victim);
 int is_trash(struct obj_data *i);
 void fry_victim(struct char_data *ch);
-int castle_cleaner(struct char_data *ch, int cmd, int gripe);
-int castle_twin_proc(struct char_data *ch, int cmd, char *arg, int ctlnum, const char *twinname);
+int castle_cleaner(struct char_data *ch, CMD_DATA *, int gripe);
+int castle_twin_proc(struct char_data *ch, CMD_DATA *, char *arg, int ctlnum, const char *twinname, int);
 void castle_mob_spec(mob_vnum mobnum, SPECIAL(*specproc));
 
 
@@ -349,10 +349,10 @@ int do_npc_rescue(struct char_data *ch_hero, struct char_data *ch_victim)
  * Procedure to block a person trying to enter a room.
  * Used by Tim/Tom at Kings bedroom and Dick/David at treasury.
  */
-int block_way(struct char_data *ch, int cmd, char *arg, room_vnum iIn_room,
+int block_way(struct char_data *ch, CMD_DATA *cmdp, char *arg, room_vnum iIn_room,
 	          int iProhibited_direction)
 {
-  if (cmd != ++iProhibited_direction)
+  if (cmdp == NULL || cmdp->number != ++iProhibited_direction)
     return (FALSE);
 
   if (ch->player.short_descr && !strncmp(ch->player.short_descr, "King Welmar", 11))
@@ -475,7 +475,7 @@ SPECIAL(king_welmar)
       path_index = 0;
     }
   }
-  if (cmd || (GET_POS(ch) < POS_SLEEPING) ||
+  if (commandp || (GET_POS(ch) < POS_SLEEPING) ||
       (GET_POS(ch) == POS_SLEEPING && !move))
     return (FALSE);
 
@@ -537,13 +537,13 @@ SPECIAL(king_welmar)
     break;
 
   case 'o':
-    do_gen_door(ch, strcpy(actbuf, "door"), 0, SCMD_UNLOCK);	/* strcpy: OK */
-    do_gen_door(ch, strcpy(actbuf, "door"), 0, SCMD_OPEN);	/* strcpy: OK */
+    do_gen_door(ch, strcpy(actbuf, "door"), 0, cmd_flags, SCMD_UNLOCK);	/* strcpy: OK */
+    do_gen_door(ch, strcpy(actbuf, "door"), 0, cmd_flags, SCMD_OPEN);	/* strcpy: OK */
     break;
 
   case 'c':
-    do_gen_door(ch, strcpy(actbuf, "door"), 0, SCMD_CLOSE);	/* strcpy: OK */
-    do_gen_door(ch, strcpy(actbuf, "door"), 0, SCMD_LOCK);	/* strcpy: OK */
+    do_gen_door(ch, strcpy(actbuf, "door"), 0, cmd_flags, SCMD_CLOSE);	/* strcpy: OK */
+    do_gen_door(ch, strcpy(actbuf, "door"), 0, cmd_flags, SCMD_LOCK);	/* strcpy: OK */
     break;
 
   case '.':
@@ -570,7 +570,7 @@ SPECIAL(training_master)
   if (!AWAKE(ch) || (GET_POS(ch) == POS_FIGHTING))
     return (FALSE);
 
-  if (cmd)
+  if (commandp)
     return (FALSE);
 
   if (banzaii(ch) || rand_number(0, 2))
@@ -651,32 +651,32 @@ SPECIAL(training_master)
 
 SPECIAL(tom)
 {
-  return castle_twin_proc(ch, cmd, argument, 48, "Tim");
+  return castle_twin_proc(ch, commandp, argument, 48, "Tim", cmd_flags);
 }
 
 SPECIAL(tim)
 {
-  return castle_twin_proc(ch, cmd, argument, 49, "Tom");
+  return castle_twin_proc(ch, commandp, argument, 49, "Tom", cmd_flags);
 }
 
 /*
  * Common routine for the Castle Twins.
  */
-int castle_twin_proc(struct char_data *ch, int cmd, char *arg, int ctlnum, const char *twinname)
+int castle_twin_proc(struct char_data *ch, CMD_DATA* cmdp, char *arg, int ctlnum, const char *twinname, int cmd_flags)
 {
   struct char_data *king, *twin;
 
   if (!AWAKE(ch))
     return (FALSE);
 
-  if (cmd)
-    return block_way(ch, cmd, arg, castle_virtual(ctlnum), 1);
+  if (cmdp)
+    return block_way(ch, cmdp, arg, castle_virtual(ctlnum), 1);
 
   if ((king = find_npc_by_name(ch, "King Welmar", 11)) != NULL) {
     char actbuf[MAX_INPUT_LENGTH];
 
     if (!ch->master)
-      do_follow(ch, strcpy(actbuf, "King Welmar"), 0, 0);	/* strcpy: OK */
+      do_follow(ch, strcpy(actbuf, "King Welmar"), 0, cmd_flags, 0);	/* strcpy: OK */
     if (FIGHTING(king))
       do_npc_rescue(ch, king);
   }
@@ -700,17 +700,17 @@ int castle_twin_proc(struct char_data *ch, int cmd, char *arg, int ctlnum, const
  */
 SPECIAL(James)
 {
-  return castle_cleaner(ch, cmd, TRUE);
+  return castle_cleaner(ch, commandp, TRUE);
 }
 
 /*
  * Common code for James and the Cleaning Woman.
  */
-int castle_cleaner(struct char_data *ch, int cmd, int gripe)
+int castle_cleaner(struct char_data *ch, CMD_DATA* commandp, int gripe)
 {
   struct obj_data *i;
 
-  if (cmd || !AWAKE(ch) || GET_POS(ch) == POS_FIGHTING)
+  if (commandp || !AWAKE(ch) || GET_POS(ch) == POS_FIGHTING)
     return (FALSE);
 
   for (i = world[IN_ROOM(ch)].contents; i; i = i->next_content) {
@@ -737,7 +737,7 @@ int castle_cleaner(struct char_data *ch, int cmd, int gripe)
  */
 SPECIAL(cleaning)
 {
-  return castle_cleaner(ch, cmd, FALSE);
+  return castle_cleaner(ch, commandp, FALSE);
 }
 
 
@@ -748,7 +748,7 @@ SPECIAL(cleaning)
  */
 SPECIAL(CastleGuard)
 {
-  if (cmd || !AWAKE(ch) || (GET_POS(ch) == POS_FIGHTING))
+  if (commandp || !AWAKE(ch) || (GET_POS(ch) == POS_FIGHTING))
     return (FALSE);
 
   return (banzaii(ch));
@@ -765,10 +765,10 @@ SPECIAL(DicknDavid)
   if (!AWAKE(ch))
     return (FALSE);
 
-  if (!cmd && GET_POS(ch) != POS_FIGHTING)
+  if (!commandp && GET_POS(ch) != POS_FIGHTING)
     banzaii(ch);
 
-  return (block_way(ch, cmd, argument, castle_virtual(36), 1));
+  return (block_way(ch, commandp, argument, castle_virtual(36), 1));
 }
 
 
@@ -780,7 +780,7 @@ SPECIAL(peter)
 {
   struct char_data *ch_guard = NULL;
 
-  if (cmd || !AWAKE(ch) || GET_POS(ch) == POS_FIGHTING)
+  if (commandp || !AWAKE(ch) || GET_POS(ch) == POS_FIGHTING)
     return (FALSE);
 
   if (banzaii(ch))
@@ -850,7 +850,7 @@ SPECIAL(jerry)
   if (!AWAKE(ch) || (GET_POS(ch) == POS_FIGHTING))
     return (FALSE);
 
-  if (cmd)
+  if (commandp)
     return (FALSE);
 
   if (banzaii(ch) || rand_number(0, 2))

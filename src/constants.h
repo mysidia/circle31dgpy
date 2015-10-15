@@ -25,6 +25,7 @@ extern const char *fullness[];
 extern const char *npc_class_types[];
 extern const char *weekdays[];
 extern const char *month_name[];
+extern const char *script_languages[];
 extern const struct str_app_type str_app[];
 extern const struct dex_skill_type dex_app_skill[];
 extern const struct dex_app_type dex_app[];

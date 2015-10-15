@@ -48,7 +48,7 @@ struct obj_data *Obj_from_store(struct obj_file_elem object, int *location);
 int Obj_to_store(struct obj_data *obj, FILE *fl, int location);
 void update_obj_file(void);
 int Crash_write_rentcode(struct char_data *ch, FILE *fl, struct rent_info *rent);
-int gen_receptionist(struct char_data *ch, struct char_data *recep, int cmd, char *arg, int mode);
+int gen_receptionist(struct char_data *ch, struct char_data *recep, CMD_DATA* commandp, char *arg, int mode, int cmd_flags);
 int Crash_save(struct obj_data *obj, FILE *fp, int location);
 void Crash_rent_deadline(struct char_data *ch, struct char_data *recep, long cost);
 void Crash_restore_weight(struct obj_data *obj);
@@ -1056,14 +1056,14 @@ int Crash_offer_rent(struct char_data *ch, struct char_data *recep,
 
 
 int gen_receptionist(struct char_data *ch, struct char_data *recep,
-		         int cmd, char *arg, int mode)
+		         CMD_DATA* commandp, char *arg, int mode, int cmd_flags)
 {
   int cost;
   const char *action_table[] = { "smile", "dance", "sigh", "blush", "burp",
 	  "cough", "fart", "twiddle", "yawn" };
 
-  if (!cmd && !rand_number(0, 5)) {
-    do_action(recep, NULL, find_command(action_table[rand_number(0, 8)]), 0);
+  if (!commandp && !rand_number(0, 5)) {
+    do_action(recep, NULL, find_command(action_table[rand_number(0, 8)]), cmd_flags, 0);
     return (FALSE);
   }
 
@@ -1137,13 +1137,13 @@ int gen_receptionist(struct char_data *ch, struct char_data *recep,
 
 SPECIAL(receptionist)
 {
-  return (gen_receptionist(ch, (struct char_data *)me, cmd, argument, RENT_FACTOR));
+  return (gen_receptionist(ch, (struct char_data *)me, commandp, argument, RENT_FACTOR, cmd_flags));
 }
 
 
 SPECIAL(cryogenicist)
 {
-  return (gen_receptionist(ch, (struct char_data *)me, cmd, argument, CRYO_FACTOR));
+  return (gen_receptionist(ch, (struct char_data *)me, commandp, argument, CRYO_FACTOR, cmd_flags));
 }
 
 

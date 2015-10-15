@@ -105,7 +105,7 @@ void	Crash_save_all(void);
 /* prototypes from fight.c */
 void	set_fighting(struct char_data *ch, struct char_data *victim);
 void	stop_fighting(struct char_data *ch);
-void	hit(struct char_data *ch, struct char_data *victim, int type);
+int	hit(struct char_data *ch, struct char_data *victim, int type);
 void	forget(struct char_data *ch, struct char_data *victim);
 void	remember(struct char_data *ch, struct char_data *victim);
 int	damage(struct char_data *ch, struct char_data *victim, int dam, int attacktype);

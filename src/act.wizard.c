@@ -22,12 +22,12 @@
 #include "screen.h"
 #include "constants.h"
 #include "oasis.h"
-#include "dg_scripts.h"
+#include "genscript.h"
 
 /*   external vars  */
 extern FILE *player_fl;
 extern struct attack_hit_type attack_hit_text[];
-extern char *class_abbrevs[];
+extern const char *class_abbrevs[];
 extern time_t boot_time;
 extern int circle_shutdown, circle_reboot;
 extern int circle_restrict;
@@ -234,7 +234,7 @@ ACMD(do_at)
   original_loc = IN_ROOM(ch);
   char_from_room(ch);
   char_to_room(ch, location);
-  command_interpreter(ch, command);
+  command_interpreter(ch, command, cmd_flags | CMDPASS_AT);
 
   /* check if the char is still there */
   if (IN_ROOM(ch) == location) {
@@ -262,7 +262,7 @@ ACMD(do_goto)
   act(buf, TRUE, ch, 0, 0, TO_ROOM);
 
   look_at_room(ch, 0);
-  enter_wtrigger(&world[IN_ROOM(ch)], ch, -1);
+  script_char_enter_room_trigger(&world[IN_ROOM(ch)], ch, -1);
 }
 
 
@@ -293,7 +293,7 @@ ACMD(do_trans)
       act("$n has transferred you!", FALSE, ch, 0, victim, TO_VICT);
       look_at_room(victim, 0);
   
-      enter_wtrigger(&world[IN_ROOM(victim)], victim, -1);
+      script_char_enter_room_trigger(&world[IN_ROOM(victim)], victim, -1);
     }
   } else {			/* Trans All */
     if (GET_LEVEL(ch) < LVL_GRGOD) {
@@ -312,7 +312,7 @@ ACMD(do_trans)
 	act("$n arrives from a puff of smoke.", FALSE, victim, 0, 0, TO_ROOM);
 	act("$n has transferred you!", FALSE, ch, 0, victim, TO_VICT);
 	look_at_room(victim, 0);
-        enter_wtrigger(&world[IN_ROOM(victim)], victim, -1);
+        script_char_enter_room_trigger(&world[IN_ROOM(victim)], victim, -1);
       }
     send_to_char(ch, "%s", CONFIG_OK);
   }
@@ -346,7 +346,7 @@ ACMD(do_teleport)
     act("$n arrives from a puff of smoke.", FALSE, victim, 0, 0, TO_ROOM);
     act("$n has teleported you!", FALSE, ch, 0, (char *) victim, TO_VICT);
     look_at_room(victim, 0);
-    enter_wtrigger(&world[IN_ROOM(victim)], victim, -1);
+    script_char_enter_room_trigger(&world[IN_ROOM(victim)], victim, -1);
   }
 }
 
@@ -1108,7 +1108,10 @@ ACMD(do_load)
 	0, 0, TO_ROOM);
     act("$n has created $N!", FALSE, ch, 0, mob, TO_ROOM);
     act("You create $N.", FALSE, ch, 0, mob, TO_CHAR);
-    load_mtrigger(mob);
+    if (IS_SET(script_mob_loaded(&mob), SCRIPT_RET_SUBJECT_DEAD)) {
+	    extract_char(mob);
+	    return;
+    }
   } else if (is_abbrev(buf, "obj")) {
     struct obj_data *obj;
     obj_rnum r_num;
@@ -1125,7 +1128,9 @@ ACMD(do_load)
     act("$n makes a strange magical gesture.", TRUE, ch, 0, 0, TO_ROOM);
     act("$n has created $p!", FALSE, ch, obj, 0, TO_ROOM);
     act("You create $p.", FALSE, ch, obj, 0, TO_CHAR);
-    load_otrigger(obj);
+    if (IS_SET(script_obj_loaded(&obj), SCRIPT_RET_OBJECT_DEAD)) {    
+	    return;
+    }
   } else
     send_to_char(ch, "That'll have to be either 'obj' or 'mob'.\r\n");
 }
@@ -1656,10 +1661,14 @@ ACMD(do_force)
   struct descriptor_data *i, *next_desc;
   struct char_data *vict, *next_force;
   char arg[MAX_INPUT_LENGTH], to_force[MAX_INPUT_LENGTH], buf1[MAX_INPUT_LENGTH + 32];
+  int flags = 0;
 
   half_chop(argument, arg, to_force);
 
   snprintf(buf1, sizeof(buf1), "$n has forced you to '%s'.", to_force);
+
+  if (GET_LEVEL(ch) >= LVL_IMPL)
+	  flags |= CMDPASS_IMPFORCE;
 
   if (!*arg || !*to_force)
     send_to_char(ch, "Whom do you wish to force do what?\r\n");
@@ -1672,7 +1681,7 @@ ACMD(do_force)
       send_to_char(ch, "%s", CONFIG_OK);
       act(buf1, TRUE, ch, NULL, vict, TO_VICT);
       mudlog(NRM, MAX(LVL_GOD, GET_INVIS_LEV(ch)), TRUE, "(GC) %s forced %s to %s", GET_NAME(ch), GET_NAME(vict), to_force);
-      command_interpreter(vict, to_force);
+      command_interpreter(vict, to_force, flags | CMDPASS_FORCE_INDIV);
     }
   } else if (!str_cmp("room", arg)) {
     send_to_char(ch, "%s", CONFIG_OK);
@@ -1684,7 +1693,7 @@ ACMD(do_force)
       if (!IS_NPC(vict) && GET_LEVEL(vict) >= GET_LEVEL(ch))
 	continue;
       act(buf1, TRUE, ch, NULL, vict, TO_VICT);
-      command_interpreter(vict, to_force);
+      command_interpreter(vict, to_force, flags | CMDPASS_FORCE_ROOM);
     }
   } else { /* force all */
     send_to_char(ch, "%s", CONFIG_OK);
@@ -1696,7 +1705,7 @@ ACMD(do_force)
       if (STATE(i) != CON_PLAYING || !(vict = i->character) || (!IS_NPC(vict) && GET_LEVEL(vict) >= GET_LEVEL(ch)))
 	continue;
       act(buf1, TRUE, ch, NULL, vict, TO_VICT);
-      command_interpreter(vict, to_force);
+      command_interpreter(vict, to_force, flags | CMDPASS_FORCE_ALL);
     }
   }
 }

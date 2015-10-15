@@ -1,0 +1,51 @@
+SERVER API
+
+    import server
+
+    Many of the mud's raw data structures are available in the 'server' module.
+    These were wrapped automatically using SWIG.
+
+    Many of the global variables are available inside  server.cvar.
+
+    Ex:
+        server.cvar.character_list        Is a reference to the character_list
+                                          variable in the mud.
+
+    The data structures in server.cvar.* are the RAW ones, i.e.
+
+    server.cvar.character_list  is a server.char_data, not a mud.Character
+
+    The major thing that is absent in this interface are:
+
+         - Macros, SWIG can't do this
+
+         - Any function that uses printf-style arguments.  SWIG can't
+           wrap C's vararg functions.
+
+    A few of these capabilities are implemented in the mud.* API
+
+MUD API
+
+    import mud
+
+    This API is implemented in python_script.c
+
+    It provides some functions for controlling the python system, which are
+    used mostly in   init.py  and modules.py
+
+    It also provides a small set of objects that represent characters, objects,
+    and rooms (So far)
+
+    The interface is incomplete;
+
+    However, these are the objects that will generally be passed from the mud server
+    to the scripts.
+
+    And they provide utilities not otherwise available, such as can_see.
+
+    The major exception is the null events, but this will probably change before
+    more events are implemented.
+
+
+
+

@@ -498,7 +498,6 @@ void trigedit_setup_existing(struct descriptor_data *d, int rtrg_num);
 void trigedit_setup_new(struct descriptor_data *d);
 ACMD(do_oasis_trigedit);
 
-
 int free_strings(void *data, int type);
 void list_rooms(struct char_data *ch  , zone_rnum rnum, room_vnum vmin, room_vnum vmax);
 void list_mobiles(struct char_data *ch, zone_rnum rnum, mob_vnum vmin , mob_vnum vmax );

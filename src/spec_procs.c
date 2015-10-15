@@ -209,7 +209,7 @@ SPECIAL(dump)
   if (!CMD_IS("drop"))
     return (FALSE);
 
-  do_drop(ch, argument, cmd, SCMD_DROP);
+  do_drop(ch, argument, commandp, 0, SCMD_DROP);
 
   for (k = world[IN_ROOM(ch)].contents; k; k = world[IN_ROOM(ch)].contents) {
     act("$p vanishes in a puff of smoke!", FALSE, 0, k, 0, TO_ROOM);
@@ -254,7 +254,7 @@ SPECIAL(mayor)
       path_index = 0;
     }
   }
-  if (cmd || !move || (GET_POS(ch) < POS_SLEEPING) ||
+  if (commandp || !move || (GET_POS(ch) < POS_SLEEPING) ||
       (GET_POS(ch) == POS_FIGHTING))
     return (FALSE);
 
@@ -304,13 +304,13 @@ SPECIAL(mayor)
     break;
 
   case 'O':
-    do_gen_door(ch, strcpy(actbuf, "gate"), 0, SCMD_UNLOCK);	/* strcpy: OK */
-    do_gen_door(ch, strcpy(actbuf, "gate"), 0, SCMD_OPEN);	/* strcpy: OK */
+    do_gen_door(ch, strcpy(actbuf, "gate"), 0, cmd_flags, SCMD_UNLOCK);	/* strcpy: OK */
+    do_gen_door(ch, strcpy(actbuf, "gate"), 0, cmd_flags, SCMD_OPEN);	/* strcpy: OK */
     break;
 
   case 'C':
-    do_gen_door(ch, strcpy(actbuf, "gate"), 0, SCMD_CLOSE);	/* strcpy: OK */
-    do_gen_door(ch, strcpy(actbuf, "gate"), 0, SCMD_LOCK);	/* strcpy: OK */
+    do_gen_door(ch, strcpy(actbuf, "gate"), 0, cmd_flags, SCMD_CLOSE);	/* strcpy: OK */
+    do_gen_door(ch, strcpy(actbuf, "gate"), 0, cmd_flags, SCMD_LOCK);	/* strcpy: OK */
     break;
 
   case '.':
@@ -359,7 +359,7 @@ void npc_steal(struct char_data *ch, struct char_data *victim)
  */
 SPECIAL(snake)
 {
-  if (cmd || GET_POS(ch) != POS_FIGHTING || !FIGHTING(ch))
+  if (commandp || GET_POS(ch) != POS_FIGHTING || !FIGHTING(ch))
     return (FALSE);
 
   if (IN_ROOM(FIGHTING(ch)) != IN_ROOM(ch) || rand_number(0, GET_LEVEL(ch)) != 0)
@@ -376,7 +376,7 @@ SPECIAL(thief)
 {
   struct char_data *cons;
 
-  if (cmd || GET_POS(ch) != POS_STANDING)
+  if (commandp || GET_POS(ch) != POS_STANDING)
     return (FALSE);
 
   for (cons = world[IN_ROOM(ch)].people; cons; cons = cons->next_in_room)
@@ -393,7 +393,7 @@ SPECIAL(magic_user)
 {
   struct char_data *vict;
 
-  if (cmd || GET_POS(ch) != POS_FIGHTING)
+  if (commandp || GET_POS(ch) != POS_FIGHTING)
     return (FALSE);
 
   /* pseudo-randomly choose someone in the room who is fighting me */
@@ -472,7 +472,7 @@ SPECIAL(guild_guard)
   const char *buf = "The guard humiliates you, and blocks your way.\r\n";
   const char *buf2 = "The guard humiliates $n, and blocks $s way.";
 
-  if (!IS_MOVE(cmd) || AFF_FLAGGED(guard, AFF_BLIND))
+  if (!commandp || !IS_MOVE(commandp) || AFF_FLAGGED(guard, AFF_BLIND))
     return (FALSE);
 
   if (GET_LEVEL(ch) >= LVL_IMMORT)
@@ -480,7 +480,7 @@ SPECIAL(guild_guard)
 
   for (i = 0; guild_info[i].guild_room != NOWHERE; i++) {
     /* Wrong guild or not trying to enter. */
-    if (GET_ROOM_VNUM(IN_ROOM(ch)) != guild_info[i].guild_room || cmd != guild_info[i].direction)
+    if (GET_ROOM_VNUM(IN_ROOM(ch)) != guild_info[i].guild_room || commandp->number != guild_info[i].direction)
       continue;
 
     /* Allow the people of the guild through. */
@@ -501,21 +501,21 @@ SPECIAL(puff)
 {
   char actbuf[MAX_INPUT_LENGTH];
 
-  if (cmd)
+  if (commandp)
     return (FALSE);
 
   switch (rand_number(0, 60)) {
   case 0:
-    do_say(ch, strcpy(actbuf, "My god!  It's full of stars!"), 0, 0);	/* strcpy: OK */
+    do_say(ch, strcpy(actbuf, "My god!  It's full of stars!"), 0, 0, 0);	/* strcpy: OK */
     return (TRUE);
   case 1:
-    do_say(ch, strcpy(actbuf, "How'd all those fish get up here?"), 0, 0);	/* strcpy: OK */
+    do_say(ch, strcpy(actbuf, "How'd all those fish get up here?"), 0, 0, 0);	/* strcpy: OK */
     return (TRUE);
   case 2:
-    do_say(ch, strcpy(actbuf, "I'm a very female dragon."), 0, 0);	/* strcpy: OK */
+    do_say(ch, strcpy(actbuf, "I'm a very female dragon."), 0, 0, 0);	/* strcpy: OK */
     return (TRUE);
   case 3:
-    do_say(ch, strcpy(actbuf, "I've got a peaceful, easy feeling."), 0, 0);	/* strcpy: OK */
+    do_say(ch, strcpy(actbuf, "I've got a peaceful, easy feeling."), 0, 0, 0);	/* strcpy: OK */
     return (TRUE);
   default:
     return (FALSE);
@@ -528,7 +528,7 @@ SPECIAL(fido)
 {
   struct obj_data *i, *temp, *next_obj;
 
-  if (cmd || !AWAKE(ch))
+  if (commandp || !AWAKE(ch))
     return (FALSE);
 
   for (i = world[IN_ROOM(ch)].contents; i; i = i->next_content) {
@@ -554,7 +554,7 @@ SPECIAL(janitor)
 {
   struct obj_data *i;
 
-  if (cmd || !AWAKE(ch))
+  if (commandp || !AWAKE(ch))
     return (FALSE);
 
   for (i = world[IN_ROOM(ch)].contents; i; i = i->next_content) {
@@ -577,7 +577,7 @@ SPECIAL(cityguard)
   struct char_data *tch, *evil, *spittle;
   int max_evil, min_cha;
 
-  if (cmd || !AWAKE(ch) || FIGHTING(ch))
+  if (commandp || !AWAKE(ch) || FIGHTING(ch))
     return (FALSE);
 
   max_evil = 1000;
@@ -619,18 +619,18 @@ SPECIAL(cityguard)
 
   /* Reward the socially inept. */
   if (spittle && !rand_number(0, 9)) {
-    static int spit_social;
+    static CMD_DATA* spit_social;
 
     if (!spit_social)
       spit_social = find_command("spit");
 
-    if (spit_social > 0) {
+    if (spit_social) {
       char spitbuf[MAX_NAME_LENGTH + 1];
 
       strncpy(spitbuf, GET_NAME(spittle), sizeof(spitbuf));	/* strncpy: OK */
       spitbuf[sizeof(spitbuf) - 1] = '\0';
 
-      do_action(ch, spitbuf, spit_social, 0);
+      do_action(ch, spitbuf, spit_social, 0, 0);
       return (TRUE);
     }
   }

@@ -21,10 +21,10 @@
 #include "spells.h"
 #include "house.h"
 #include "constants.h"
-#include "dg_scripts.h"
+#include "genscript.h"
 
 /* external functions */
-int special(struct char_data *ch, int cmd, char *arg);
+int special(struct char_data *ch, CMD_DATA* commandp, int cmd_flags, char *arg);
 void death_cry(struct char_data *ch);
 int find_eq_pos(struct char_data *ch, struct obj_data *obj, char *arg);
 
@@ -43,6 +43,20 @@ ACMD(do_rest);
 ACMD(do_sleep);
 ACMD(do_wake);
 ACMD(do_follow);
+
+CMD_DATA* direction_command(int dir)
+{
+	long slot = hash_command(dirs[dir]);
+	CMD_DATA *cmd;
+
+	for(cmd = LIST_FIRST(&cmd_hash[slot]); cmd; 
+			cmd = LIST_NEXT(cmd, cmd_lst))
+	{
+		if (!strcmp(dirs[dir], cmd->name))
+			return cmd;
+	}
+	return NULL;
+}
 
 
 /* simple function to determine if char can walk on water */
@@ -89,19 +103,21 @@ int do_simple_move(struct char_data *ch, int dir, int need_specials_check)
 {
   char throwaway[MAX_INPUT_LENGTH] = ""; /* Functions assume writable. */
   room_rnum was_in = IN_ROOM(ch);
-  int need_movement;
+  int need_movement, result;
+  CMD_DATA* dircmd;
 
   /*
    * Check for special routines (North is 1 in command list, but 0 here) Note
    * -- only check if following; this avoids 'double spec-proc' bug
    */
-  if (need_specials_check && special(ch, dir + 1, throwaway))
+  if (need_specials_check && ((dircmd = direction_command(dir)) != NULL) 
+		  && special(ch, dircmd, 0, throwaway))
     return (0);
 
   /* blocked by a leave trigger ? */
-  if (!leave_mtrigger(ch, dir) || IN_ROOM(ch) != was_in) /* prevent teleport crashes */
+  if (!script_mob_leave_trigger(ch, dir) || IN_ROOM(ch) != was_in) /* prevent teleport crashes */
     return 0;
-  if (!leave_wtrigger(&world[IN_ROOM(ch)], ch, dir) || IN_ROOM(ch) != was_in) /* prevent teleport crashes */
+  if (!script_char_left_room_trigger(&world[IN_ROOM(ch)], ch, dir) || IN_ROOM(ch) != was_in) /* prevent teleport crashes */
     return 0;
 
   /* charmed? */
@@ -169,7 +185,7 @@ int do_simple_move(struct char_data *ch, int dir, int need_specials_check)
 
   /* move them first, then move them back if they aren't allowed to go. */
   /* see if an entry trigger disallows the move */
-  if (!entry_mtrigger(ch) || !enter_wtrigger(&world[IN_ROOM(ch)], ch, dir)) {
+  if (!script_enter_trigger(ch, &world[IN_ROOM(ch)], dir)) {
     char_from_room(ch);
     char_to_room(ch, was_in);
     return 0;
@@ -188,12 +204,16 @@ int do_simple_move(struct char_data *ch, int dir, int need_specials_check)
     return (0);
   }
 
-  entry_memory_mtrigger(ch);
-  if (!greet_mtrigger(ch, dir)) {
+  result = check_null_hooks(HOOK_CHAR_ENTERED, ch, int_to_param(dir), SNull);
+  if (IS_SET(result, SCRIPT_RET_ACTOR_DEAD))
+	  return (0);
+
+  if (IS_SET(result, SCRIPT_RET_CANCEL)) 
+  {
     char_from_room(ch);
     char_to_room(ch, was_in);
     look_at_room(ch, 0);
-  } else greet_memory_mtrigger(ch);
+  } else script_greet_memory(ch);
 
   return (1);
 }
@@ -351,10 +371,7 @@ void do_doorcmd(struct char_data *ch, struct obj_data *obj, int door, int scmd)
   room_rnum other_room = NOWHERE;
   struct room_direction_data *back = NULL;
 
-  if (!door_mtrigger(ch, scmd, door))
-    return;
-
-  if (!door_wtrigger(ch, scmd, door))
+  if (script_char_door_trigger(ch, scmd, door) == 0)
     return;
 
   len = snprintf(buf, sizeof(buf), "$n %ss ", cmd_door[scmd]);

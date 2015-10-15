@@ -8,6 +8,11 @@
 *  CircleMUD is based on DikuMUD, Copyright (C) 1990, 1991.               *
 ************************************************************************ */
 
+#ifndef __structs_h__
+#define __structs_h__
+
+#include "queue.h"
+
 /*
  * Intended use of this macro is to allow external packages to work with
  * a variety of CircleMUD versions without modifications.  For instance,
@@ -42,7 +47,7 @@
  */
 #define CIRCLE_UNSIGNED_INDEX	0	/* 0 = signed, 1 = unsigned */
 
-#if CIRCLE_UNSIGNED_INDEX
+#if CIRCLE_UNSIGNED_INDEX 
 # define IDXTYPE	ush_int
 # define NOWHERE	((IDXTYPE)~0)
 # define NOTHING	((IDXTYPE)~0)
@@ -54,8 +59,10 @@
 # define NOBODY		(-1)	/* nil reference for mobiles	*/
 #endif
 
+struct command_info;
+
 #define SPECIAL(name) \
-   int (name)(struct char_data *ch, void *me, int cmd, char *argument)
+   int (name)(struct char_data *ch, void *me, struct command_info* commandp, char *argument, int cmd_flags)
 
 
 /* room-related defines *************************************************/
@@ -449,6 +456,10 @@
 #define RENT_TIMEDOUT   5
 
 
+struct _script_listener_registration;
+
+LIST_HEAD(_script_listener_ghead,_script_listener_registration);
+
 /* other #defined constants **********************************************/
 
 /*
@@ -548,7 +559,9 @@ typedef unsigned char		ubyte;
 typedef signed short int	sh_int;
 typedef unsigned short int	ush_int;
 #if !defined(__cplusplus)	/* Anyone know a portable method? */
+#ifndef SWIG
 typedef char			bool;
+#endif
 #endif
 
 #if !defined(CIRCLE_WINDOWS) || defined(LCC_WIN32)	/* Hm, sysdep.h? */
@@ -571,6 +584,11 @@ typedef IDXTYPE zone_rnum;
 typedef IDXTYPE shop_rnum;
 typedef IDXTYPE trig_rnum;
 
+
+typedef enum Game_Script_Language_Types
+{
+        NATIVE, PYTHON, INVALID_LANG
+} t_language;
 
 /*
  * Bitvector type for 32 bit unsigned long bitvectors.
@@ -641,6 +659,9 @@ struct obj_data {
 
    struct obj_data *next_content; /* For 'contains' lists             */
    struct obj_data *next;         /* For the object list              */
+
+   struct _script_listener_ghead script_listeners;
+   struct _script_listener_ghead proto_script_listeners;
 };
 /* ======================================================================= */
 
@@ -715,6 +736,8 @@ struct room_data {
 
    struct obj_data *contents;   /* List of items in room              */
    struct char_data *people;    /* List of NPC / PC in room           */
+
+   struct _script_listener_ghead script_listeners;
 };
 /* ====================================================================== */
 
@@ -958,6 +981,9 @@ struct char_data {
 
    struct follow_type *followers;        /* List of chars followers       */
    struct char_data *master;             /* Who is char following?        */
+
+   struct _script_listener_ghead script_listeners;
+   struct _script_listener_ghead proto_script_listeners;
 };
 /* ====================================================================== */
 
@@ -1242,3 +1268,4 @@ struct config_data {
   struct autowiz_data    autowiz;	/* autowiz related stuff */
 };
 
+#endif /* !defined(__structs_h__) */

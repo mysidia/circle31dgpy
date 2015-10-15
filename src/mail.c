@@ -38,9 +38,9 @@ position_list_type *free_list = NULL;	/* list of free positions in file */
 long file_end_pos = 0;			/* length of file */
 
 /* local functions */
-void postmaster_send_mail(struct char_data *ch, struct char_data *mailman, int cmd, char *arg);
-void postmaster_check_mail(struct char_data *ch, struct char_data *mailman, int cmd, char *arg);
-void postmaster_receive_mail(struct char_data *ch, struct char_data *mailman, int cmd, char *arg);
+void postmaster_send_mail(struct char_data *ch, struct char_data *mailman, CMD_DATA*, char *arg);
+void postmaster_check_mail(struct char_data *ch, struct char_data *mailman, CMD_DATA*, char *arg);
+void postmaster_receive_mail(struct char_data *ch, struct char_data *mailman, CMD_DATA*, char *arg);
 void push_free_list(long pos);
 long pop_free_list(void);
 void clear_free_list(void);
@@ -511,13 +511,13 @@ SPECIAL(postmaster)
   }
 
   if (CMD_IS("mail")) {
-    postmaster_send_mail(ch, (struct char_data *)me, cmd, argument);
+    postmaster_send_mail(ch, (struct char_data *)me, commandp, argument);
     return (1);
   } else if (CMD_IS("check")) {
-    postmaster_check_mail(ch, (struct char_data *)me, cmd, argument);
+    postmaster_check_mail(ch, (struct char_data *)me, commandp, argument);
     return (1);
   } else if (CMD_IS("receive")) {
-    postmaster_receive_mail(ch, (struct char_data *)me, cmd, argument);
+    postmaster_receive_mail(ch, (struct char_data *)me, commandp, argument);
     return (1);
   } else
     return (0);
@@ -525,7 +525,7 @@ SPECIAL(postmaster)
 
 
 void postmaster_send_mail(struct char_data *ch, struct char_data *mailman,
-			  int cmd, char *arg)
+			  CMD_DATA* commandp, char *arg)
 {
   long recipient;
   char buf[MAX_INPUT_LENGTH], **mailwrite;
@@ -570,7 +570,7 @@ void postmaster_send_mail(struct char_data *ch, struct char_data *mailman,
 
 
 void postmaster_check_mail(struct char_data *ch, struct char_data *mailman,
-			  int cmd, char *arg)
+			  CMD_DATA* commandp, char *arg)
 {
   if (has_mail(GET_IDNUM(ch)))
     act("$n tells you, 'You have mail waiting.'", FALSE, mailman, 0, ch, TO_VICT);
@@ -580,7 +580,7 @@ void postmaster_check_mail(struct char_data *ch, struct char_data *mailman,
 
 
 void postmaster_receive_mail(struct char_data *ch, struct char_data *mailman,
-			  int cmd, char *arg)
+			  CMD_DATA* commandp, char *arg)
 {
   char buf[256];
   struct obj_data *obj;

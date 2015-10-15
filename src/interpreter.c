@@ -26,7 +26,7 @@
 #include "oasis.h"
 #include "tedit.h"
 #include "improved-edit.h"
-#include "dg_scripts.h"
+#include "genscript.h"
 #include "constants.h"
 
 /* external variables */
@@ -47,7 +47,7 @@ void echo_on(struct descriptor_data *d);
 void echo_off(struct descriptor_data *d);
 void do_start(struct char_data *ch);
 int parse_class(char arg);
-int special(struct char_data *ch, int cmd, char *arg);
+int special(struct char_data *ch, CMD_DATA* cmdp, int cmd_flags, char *arg);
 int isbanned(char *hostname);
 int Valid_Name(char *newname);
 void read_aliases(struct char_data *ch);
@@ -62,560 +62,778 @@ void perform_complex_alias(struct txt_q *input_q, char *orig, struct alias_data 
 int perform_alias(struct descriptor_data *d, char *orig, size_t maxlen);
 int reserved_word(char *argument);
 int _parse_name(char *arg, char *name);
+void free_command_handler(CMD_DATA* cmdSpec);
+bool has_call_fun(CMD_DATA* cmdSpec);
+static void free_command(CMD_DATA* cmdSpec);
+	
+	
+
 
 /* prototypes for all do_x functions. */
-ACMD(do_action);
-ACMD(do_advance);
-ACMD(do_alias);
-ACMD(do_assist);
-ACMD(do_at);
-ACMD(do_backstab);
-ACMD(do_ban);
-ACMD(do_bash);
-ACMD(do_cast);
-ACMD(do_color);
-ACMD(do_commands);
-ACMD(do_consider);
-ACMD(do_credits);
-ACMD(do_date);
-ACMD(do_dc);
-ACMD(do_diagnose);
-ACMD(do_dig);
-ACMD(do_display);
-ACMD(do_drink);
-ACMD(do_drop);
-ACMD(do_eat);
-ACMD(do_echo);
-ACMD(do_edit);		/* Mainly intended as a test function. */
-ACMD(do_enter);
-ACMD(do_equipment);
-ACMD(do_examine);
-ACMD(do_exit);
-ACMD(do_exits);
-ACMD(do_flee);
-ACMD(do_follow);
-ACMD(do_force);
-ACMD(do_gecho);
-ACMD(do_gen_comm);
-ACMD(do_gen_door);
-ACMD(do_gen_ps);
-ACMD(do_gen_tog);
-ACMD(do_gen_write);
-ACMD(do_get);
-ACMD(do_give);
-ACMD(do_gold);
-ACMD(do_goto);
-ACMD(do_grab);
-ACMD(do_group);
-ACMD(do_gsay);
-ACMD(do_hcontrol);
-ACMD(do_help);
-ACMD(do_hide);
-ACMD(do_hit);
-ACMD(do_house);
-ACMD(do_insult);
-ACMD(do_inventory);
-ACMD(do_invis);
-ACMD(do_kick);
-ACMD(do_kill);
-ACMD(do_last);
-ACMD(do_leave);
-ACMD(do_levels);
-ACMD(do_load);
-ACMD(do_look);
-/* ACMD(do_move); -- interpreter.h */
-ACMD(do_not_here);
-ACMD(do_oasis);
-ACMD(do_olc);
-ACMD(do_order);
-ACMD(do_page);
-ACMD(do_poofset);
-ACMD(do_pour);
-ACMD(do_practice);
-ACMD(do_purge);
-ACMD(do_put);
-ACMD(do_qcomm);
-ACMD(do_quit);
-ACMD(do_reboot);
-ACMD(do_remove);
-ACMD(do_reply);
-ACMD(do_report);
-ACMD(do_rescue);
-ACMD(do_rest);
-ACMD(do_restore);
-ACMD(do_return);
-ACMD(do_save);
-ACMD(do_saveall);
-ACMD(do_say);
-ACMD(do_score);
-ACMD(do_send);
-ACMD(do_set);
-ACMD(do_show);
-ACMD(do_shutdown);
-ACMD(do_sit);
-ACMD(do_skillset);
-ACMD(do_sleep);
-ACMD(do_sneak);
-ACMD(do_snoop);
-ACMD(do_spec_comm);
-ACMD(do_split);
-ACMD(do_stand);
-ACMD(do_stat);
-ACMD(do_steal);
-ACMD(do_switch);
-ACMD(do_syslog);
-ACMD(do_teleport);
-ACMD(do_tell);
-ACMD(do_time);
-ACMD(do_title);
-ACMD(do_toggle);
-ACMD(do_track);
-ACMD(do_trans);
-ACMD(do_unban);
-ACMD(do_ungroup);
-ACMD(do_use);
-ACMD(do_users);
-ACMD(do_visible);
-ACMD(do_vnum);
-ACMD(do_vstat);
-ACMD(do_wake);
-ACMD(do_wear);
-ACMD(do_weather);
-ACMD(do_where);
-ACMD(do_who);
-ACMD(do_wield);
-ACMD(do_wimpy);
-ACMD(do_wizlock);
-ACMD(do_wiznet);
-ACMD(do_wizutil);
-ACMD(do_write);
-ACMD(do_zreset);
+#include "interpreter.cmdfuns.h"
 
-/* DG Script ACMD's */
-ACMD(do_attach);
-ACMD(do_detach);
-ACMD(do_tlist);
-ACMD(do_tstat);
-ACMD(do_masound);
-ACMD(do_mkill);
-ACMD(do_mjunk);
-ACMD(do_mdoor);
-ACMD(do_mechoaround);
-ACMD(do_msend);
-ACMD(do_mecho);
-ACMD(do_mload);
-ACMD(do_mpurge);
-ACMD(do_mgoto);
-ACMD(do_mat);
-ACMD(do_mdamage);
-ACMD(do_mteleport);
-ACMD(do_mforce);
-ACMD(do_mhunt);
-ACMD(do_mremember);
-ACMD(do_mforget);
-ACMD(do_mtransform);
-ACMD(do_mzoneecho);
-ACMD(do_vdelete);
-ACMD(do_mfollow);
+extern const struct command_info cmd_info[];
+const char* cmdfunc_name(CMD_FUN* ptr);
 
-/* This is the Master Command List(tm).
+ACMD(do_invalid)
+{
+}
 
- * You can put new commands in, take commands out, change the order
- * they appear in, etc.  You can adjust the "priority" of commands
- * simply by changing the order they appear in the command list.
- * (For example, if you want "as" to mean "assist" instead of "ask",
- * just put "assist" above "ask" in the Master Command List(tm).
- *
- * In general, utility commands such as "at" should have high priority;
- * infrequently used and dangerously destructive commands should have low
- * priority.
+/* Thisi s the command function list*/
+struct { CMD_FUN *func; const char *name; }
+cmdfun_table[] =
+{
+#define CMD_FUN(x)          { x, #x }
+CMD_FUN(do_action),
+CMD_FUN(do_advance),
+CMD_FUN(do_alias),
+CMD_FUN(do_assist),
+CMD_FUN(do_at),
+CMD_FUN(do_backstab),
+CMD_FUN(do_ban),
+CMD_FUN(do_bash),
+CMD_FUN(do_cast),
+CMD_FUN(do_color),
+CMD_FUN(do_commands),
+CMD_FUN(do_consider),
+CMD_FUN(do_date),
+CMD_FUN(do_dc),
+CMD_FUN(do_diagnose),
+CMD_FUN(do_dig),
+CMD_FUN(do_display),
+CMD_FUN(do_drink),
+CMD_FUN(do_drop),
+CMD_FUN(do_eat),
+CMD_FUN(do_echo),
+CMD_FUN(do_edit),		/* Mainly intended as a test function. */
+CMD_FUN(do_enter),
+CMD_FUN(do_equipment),
+CMD_FUN(do_examine),
+CMD_FUN(do_exits),
+CMD_FUN(do_flee),
+CMD_FUN(do_follow),
+CMD_FUN(do_force),
+CMD_FUN(do_gecho),
+CMD_FUN(do_gen_comm),
+CMD_FUN(do_gen_door),
+CMD_FUN(do_gen_ps),
+CMD_FUN(do_gen_tog),
+CMD_FUN(do_gen_write),
+CMD_FUN(do_get),
+CMD_FUN(do_give),
+CMD_FUN(do_gold),
+CMD_FUN(do_goto),
+CMD_FUN(do_grab),
+CMD_FUN(do_group),
+CMD_FUN(do_gsay),
+CMD_FUN(do_hcontrol),
+CMD_FUN(do_help),
+CMD_FUN(do_hide),
+CMD_FUN(do_hit),
+CMD_FUN(do_house),
+CMD_FUN(do_insult),
+CMD_FUN(do_inventory),
+CMD_FUN(do_invis),
+CMD_FUN(do_kick),
+CMD_FUN(do_kill),
+CMD_FUN(do_last),
+CMD_FUN(do_leave),
+CMD_FUN(do_levels),
+CMD_FUN(do_load),
+CMD_FUN(do_look),
+CMD_FUN(do_move), 
+CMD_FUN(do_not_here),
+CMD_FUN(do_oasis),
+CMD_FUN(do_olc),
+CMD_FUN(do_order),
+CMD_FUN(do_page),
+CMD_FUN(do_poofset),
+CMD_FUN(do_pour),
+CMD_FUN(do_practice),
+CMD_FUN(do_purge),
+CMD_FUN(do_put),
+CMD_FUN(do_qcomm),
+CMD_FUN(do_quit),
+CMD_FUN(do_reboot),
+CMD_FUN(do_remove),
+CMD_FUN(do_reply),
+CMD_FUN(do_report),
+CMD_FUN(do_rescue),
+CMD_FUN(do_rest),
+CMD_FUN(do_restore),
+CMD_FUN(do_return),
+CMD_FUN(do_save),
+CMD_FUN(do_saveall),
+CMD_FUN(do_say),
+CMD_FUN(do_score),
+CMD_FUN(do_send),
+CMD_FUN(do_set),
+CMD_FUN(do_show),
+CMD_FUN(do_shutdown),
+CMD_FUN(do_sit),
+CMD_FUN(do_skillset),
+CMD_FUN(do_sleep),
+CMD_FUN(do_sneak),
+CMD_FUN(do_snoop),
+CMD_FUN(do_spec_comm),
+CMD_FUN(do_split),
+CMD_FUN(do_stand),
+CMD_FUN(do_stat),
+CMD_FUN(do_steal),
+CMD_FUN(do_switch),
+CMD_FUN(do_syslog),
+CMD_FUN(do_teleport),
+CMD_FUN(do_tell),
+CMD_FUN(do_time),
+CMD_FUN(do_title),
+CMD_FUN(do_toggle),
+CMD_FUN(do_track),
+CMD_FUN(do_trans),
+CMD_FUN(do_unban),
+CMD_FUN(do_ungroup),
+CMD_FUN(do_use),
+CMD_FUN(do_users),
+CMD_FUN(do_visible),
+CMD_FUN(do_vnum),
+CMD_FUN(do_vstat),
+CMD_FUN(do_wake),
+CMD_FUN(do_wear),
+CMD_FUN(do_weather),
+CMD_FUN(do_where),
+CMD_FUN(do_who),
+CMD_FUN(do_wield),
+CMD_FUN(do_wimpy),
+CMD_FUN(do_wizlock),
+CMD_FUN(do_wiznet),
+CMD_FUN(do_wizutil),
+CMD_FUN(do_write),
+CMD_FUN(do_zreset),
+CMD_FUN(do_attach),
+CMD_FUN(do_detach),
+CMD_FUN(do_tstat),
+CMD_FUN(do_masound),
+CMD_FUN(do_mkill),
+CMD_FUN(do_mjunk),
+CMD_FUN(do_mdoor),
+CMD_FUN(do_mechoaround),
+CMD_FUN(do_msend),
+CMD_FUN(do_mecho),
+CMD_FUN(do_mload),
+CMD_FUN(do_mpurge),
+CMD_FUN(do_mgoto),
+CMD_FUN(do_mat),
+CMD_FUN(do_mdamage),
+CMD_FUN(do_mteleport),
+CMD_FUN(do_mforce),
+CMD_FUN(do_mhunt),
+CMD_FUN(do_mremember),
+CMD_FUN(do_mforget),
+CMD_FUN(do_mtransform),
+CMD_FUN(do_mzoneecho),
+CMD_FUN(do_vdelete),
+CMD_FUN(do_mfollow),
+CMD_FUN(do_py_mcall),
+CMD_FUN(do_invalid),
+CMD_FUN(do_script_credits)
+};
+
+const char* cmdfunc_name(CMD_FUN* ptr)
+{
+	int i;
+
+	for(i = 0; i < sizeof(cmdfun_table)/sizeof(cmdfun_table[0]);i++) {
+		if (ptr == cmdfun_table[i].func)
+			return cmdfun_table[i].name;
+	}
+	return cmdfunc_name(do_invalid);
+}
+
+CMD_FUN * cmdfunc_lookup(const char* name)
+{
+	int i;
+
+	if (!str_cmp(name, "<null>"))
+			return 0;
+
+	for(i = 0; i < sizeof(cmdfun_table)/sizeof(cmdfun_table[0]);i++) {
+		if (!str_cmp(cmdfun_table[i].name, name))
+			return cmdfun_table[i].func;
+	}
+	return 0;
+}
+
+struct _command_head cmd_hash[256];
+struct _command_head sorted_cmd_list;
+
+unsigned int 
+hash_command(const char* cmd) {
+	return !cmd ? 0 : ((unsigned char)UPPER(cmd[0]))%256; 
+}
+
+/*
+ * Save the command table
  */
+void save_commands()
+{
+	FILE* fp = fopen(COMMANDS_FILE".new", "w");
+	struct command_info* cmd;
+	long slot;
 
-cpp_extern const struct command_info cmd_info[] = {
-  { "RESERVED", 0, 0, 0, 0 },	/* this must be first -- for specprocs */
+	if (!fp)
+	{
+		mudlog(BRF, LVL_IMMORT, TRUE, "SYSERR: error opening %s for writing", COMMANDS_FILE);
+		return;
+	}
 
-  /* directions must come before other commands but after RESERVED */
-  { "north"    , POS_STANDING, do_move     , 0, SCMD_NORTH },
-  { "east"     , POS_STANDING, do_move     , 0, SCMD_EAST },
-  { "south"    , POS_STANDING, do_move     , 0, SCMD_SOUTH },
-  { "west"     , POS_STANDING, do_move     , 0, SCMD_WEST },
-  { "up"       , POS_STANDING, do_move     , 0, SCMD_UP },
-  { "down"     , POS_STANDING, do_move     , 0, SCMD_DOWN },
 
-  /* now, the main list */
-  { "at"       , POS_DEAD    , do_at       , LVL_IMMORT, 0 },
-  { "advance"  , POS_DEAD    , do_advance  , LVL_IMPL, 0 },
-  { "alias"    , POS_DEAD    , do_alias    , 0, 0 },
-  { "accuse"   , POS_SITTING , do_action   , 0, 0 },
-  { "applaud"  , POS_RESTING , do_action   , 0, 0 },
-  { "assist"   , POS_FIGHTING, do_assist   , 1, 0 },
-  { "ask"      , POS_RESTING , do_spec_comm, 0, SCMD_ASK },
-  { "auction"  , POS_SLEEPING, do_gen_comm , 0, SCMD_AUCTION },
-  { "autoexit" , POS_DEAD    , do_gen_tog  , 0, SCMD_AUTOEXIT },
+	for (slot = 0; slot < 256; slot++)
+	{	  
+		for (cmd = LIST_FIRST(&cmd_hash[slot]); cmd; cmd = LIST_NEXT(cmd, cmd_lst))
+		{
+			/*
+			 * Only commands that actually came from etc/commands
+			 * get saved back to it.
+			 */
+			if (!IS_SET(cmd->flags, CMD_FIXED))
+				continue;
 
-  { "bounce"   , POS_STANDING, do_action   , 0, 0 },
-  { "backstab" , POS_STANDING, do_backstab , 1, 0 },
-  { "ban"      , POS_DEAD    , do_ban      , LVL_GRGOD, 0 },
-  { "balance"  , POS_STANDING, do_not_here , 1, 0 },
-  { "bash"     , POS_FIGHTING, do_bash     , 1, 0 },
-  { "beg"      , POS_RESTING , do_action   , 0, 0 },
-  { "bleed"    , POS_RESTING , do_action   , 0, 0 },
-  { "blush"    , POS_RESTING , do_action   , 0, 0 },
-  { "bow"      , POS_STANDING, do_action   , 0, 0 },
-  { "brb"      , POS_RESTING , do_action   , 0, 0 },
-  { "brief"    , POS_DEAD    , do_gen_tog  , 0, SCMD_BRIEF },
-  { "burp"     , POS_RESTING , do_action   , 0, 0 },
-  { "buy"      , POS_STANDING, do_not_here , 0, 0 },
-  { "bug"      , POS_DEAD    , do_gen_write, 0, SCMD_BUG },
+			fprintf(fp, "#COMMAND\n");
+			fprintf(fp, "Number    %d\n"
+				    "Priority  %d\n"
+				    "Name      \"%s\"\n"
+				    "Position  %d\n"
+				    "Code      %s\n"
+				    "Level     %d\n"
+				    "Subcmd    %d\n"
+				    "Flags     %d\n"
+				    "Language  NATIVE\n",			   
+				      	   cmd->number, 49, cmd->name, 
+					   cmd->minimum_position,
+					   cmd->native_callfun ? 
+					        cmdfunc_name(cmd->native_callfun) : "<null>",
+					   cmd->minimum_level,
+					   cmd->subcmd, cmd->flags);
+			fprintf(fp, "End\n\n");
+		}		  
+	}
 
-  { "cast"     , POS_SITTING , do_cast     , 1, 0 },
-  { "cackle"   , POS_RESTING , do_action   , 0, 0 },
-  { "cedit"    , POS_DEAD    , do_oasis    , LVL_IMPL, SCMD_OASIS_CEDIT },
-  { "check"    , POS_STANDING, do_not_here , 1, 0 },
-  { "chuckle"  , POS_RESTING , do_action   , 0, 0 },
-  { "clap"     , POS_RESTING , do_action   , 0, 0 },
-  { "clear"    , POS_DEAD    , do_gen_ps   , 0, SCMD_CLEAR },
-  { "close"    , POS_SITTING , do_gen_door , 0, SCMD_CLOSE },
-  { "cls"      , POS_DEAD    , do_gen_ps   , 0, SCMD_CLEAR },
-  { "clsolc"   , POS_DEAD    , do_gen_tog  , 0, SCMD_CLS },
-  { "consider" , POS_RESTING , do_consider , 0, 0 },
-  { "color"    , POS_DEAD    , do_color    , 0, 0 },
-  { "comfort"  , POS_RESTING , do_action   , 0, 0 },
-  { "comb"     , POS_RESTING , do_action   , 0, 0 },
-  { "commands" , POS_DEAD    , do_commands , 0, SCMD_COMMANDS },
-  { "compact"  , POS_DEAD    , do_gen_tog  , 0, SCMD_COMPACT },
-  { "cough"    , POS_RESTING , do_action   , 0, 0 },
-  { "credits"  , POS_DEAD    , do_gen_ps   , 0, SCMD_CREDITS },
-  { "cringe"   , POS_RESTING , do_action   , 0, 0 },
-  { "cry"      , POS_RESTING , do_action   , 0, 0 },
-  { "cuddle"   , POS_RESTING , do_action   , 0, 0 },
-  { "curse"    , POS_RESTING , do_action   , 0, 0 },
-  { "curtsey"  , POS_STANDING, do_action   , 0, 0 },
+	fprintf(fp, "#END\n");
+	fclose(fp);
+	rename(COMMANDS_FILE".new", COMMANDS_FILE);
+}
 
-  { "dance"    , POS_STANDING, do_action   , 0, 0 },
-  { "date"     , POS_DEAD    , do_date     , LVL_IMMORT, SCMD_DATE },
-  { "daydream" , POS_SLEEPING, do_action   , 0, 0 },
-  { "dc"       , POS_DEAD    , do_dc       , LVL_GOD, 0 },
-  { "deposit"  , POS_STANDING, do_not_here , 1, 0 },
-  { "diagnose" , POS_RESTING , do_diagnose , 0, 0 },
-  { "dig"      , POS_DEAD    , do_dig      , LVL_BUILDER, 0 },
-  { "display"  , POS_DEAD    , do_display  , 0, 0 },
-  { "donate"   , POS_RESTING , do_drop     , 0, SCMD_DONATE },
-  { "drink"    , POS_RESTING , do_drink    , 0, SCMD_DRINK },
-  { "drop"     , POS_RESTING , do_drop     , 0, SCMD_DROP },
-  { "drool"    , POS_RESTING , do_action   , 0, 0 },
 
-  { "eat"      , POS_RESTING , do_eat      , 0, SCMD_EAT },
-  { "echo"     , POS_SLEEPING, do_echo     , LVL_IMMORT, SCMD_ECHO },
-  { "edit"     , POS_DEAD    , do_edit	   ,LVL_IMPL, 0 },	/* Testing! */
-  { "emote"    , POS_RESTING , do_echo     , 1, SCMD_EMOTE },
-  { ":"        , POS_RESTING, do_echo      , 1, SCMD_EMOTE },
-  { "embrace"  , POS_STANDING, do_action   , 0, 0 },
-  { "enter"    , POS_STANDING, do_enter    , 0, 0 },
-  { "equipment", POS_SLEEPING, do_equipment, 0, 0 },
-  { "exits"    , POS_RESTING , do_exits    , 0, 0 },
-  { "examine"  , POS_SITTING , do_examine  , 0, 0 },
+void
+file_skip_line(FILE* fp, char* file, bool errors_fatal)
+{
+	int letter;
 
-  { "force"    , POS_SLEEPING, do_force    , LVL_GOD, 0 },
-  { "fart"     , POS_RESTING , do_action   , 0, 0 },
-  { "fill"     , POS_STANDING, do_pour     , 0, SCMD_FILL },
-  { "flee"     , POS_FIGHTING, do_flee     , 1, 0 },
-  { "flip"     , POS_STANDING, do_action   , 0, 0 },
-  { "flirt"    , POS_RESTING , do_action   , 0, 0 },
-  { "follow"   , POS_RESTING , do_follow   , 0, 0 },
-  { "fondle"   , POS_RESTING , do_action   , 0, 0 },
-  { "freeze"   , POS_DEAD    , do_wizutil  , LVL_FREEZE, SCMD_FREEZE },
-  { "french"   , POS_RESTING , do_action   , 0, 0 },
-  { "frown"    , POS_RESTING , do_action   , 0, 0 },
-  { "fume"     , POS_RESTING , do_action   , 0, 0 },
+	for ( ;; ) {
+		letter = fgetc(fp);
+		if (letter == EOF || feof(fp)) {
+			log("SYSERR: unexpected eof in %s", file);
 
-  { "get"      , POS_RESTING , do_get      , 0, 0 },
-  { "gasp"     , POS_RESTING , do_action   , 0, 0 },
-  { "gecho"    , POS_DEAD    , do_gecho    , LVL_GOD, 0 },
-  { "give"     , POS_RESTING , do_give     , 0, 0 },
-  { "giggle"   , POS_RESTING , do_action   , 0, 0 },
-  { "glare"    , POS_RESTING , do_action   , 0, 0 },
-  { "goto"     , POS_SLEEPING, do_goto     , LVL_IMMORT, 0 },
-  { "gold"     , POS_RESTING , do_gold     , 0, 0 },
-  { "gossip"   , POS_SLEEPING, do_gen_comm , 0, SCMD_GOSSIP },
-  { "group"    , POS_RESTING , do_group    , 1, 0 },
-  { "grab"     , POS_RESTING , do_grab     , 0, 0 },
-  { "grats"    , POS_SLEEPING, do_gen_comm , 0, SCMD_GRATZ },
-  { "greet"    , POS_RESTING , do_action   , 0, 0 },
-  { "grin"     , POS_RESTING , do_action   , 0, 0 },
-  { "groan"    , POS_RESTING , do_action   , 0, 0 },
-  { "grope"    , POS_RESTING , do_action   , 0, 0 },
-  { "grovel"   , POS_RESTING , do_action   , 0, 0 },
-  { "growl"    , POS_RESTING , do_action   , 0, 0 },
-  { "gsay"     , POS_SLEEPING, do_gsay     , 0, 0 },
-  { "gtell"    , POS_SLEEPING, do_gsay     , 0, 0 },
+			if (errors_fatal)
+				exit(2);
+			return;
+		}
 
-  { "help"     , POS_DEAD    , do_help     , 0, 0 },
-  { "handbook" , POS_DEAD    , do_gen_ps   , LVL_IMMORT, SCMD_HANDBOOK },
-  { "hcontrol" , POS_DEAD    , do_hcontrol , LVL_GRGOD, 0 },
-  { "hiccup"   , POS_RESTING , do_action   , 0, 0 },
-  { "hide"     , POS_RESTING , do_hide     , 1, 0 },
-  { "hit"      , POS_FIGHTING, do_hit      , 0, SCMD_HIT },
-  { "hold"     , POS_RESTING , do_grab     , 1, 0 },
-  { "holler"   , POS_RESTING , do_gen_comm , 1, SCMD_HOLLER },
-  { "holylight", POS_DEAD    , do_gen_tog  , LVL_IMMORT, SCMD_HOLYLIGHT },
-  { "hop"      , POS_RESTING , do_action   , 0, 0 },
-  { "house"    , POS_RESTING , do_house    , 0, 0 },
-  { "hug"      , POS_RESTING , do_action   , 0, 0 },
+		if (letter != '\n') {
+			ungetc(letter, fp);
+			break;
+		}
+	}
+}
 
-  { "inventory", POS_DEAD    , do_inventory, 0, 0 },
-  { "idea"     , POS_DEAD    , do_gen_write, 0, SCMD_IDEA },
-  { "imotd"    , POS_DEAD    , do_gen_ps   , LVL_IMMORT, SCMD_IMOTD },
-  { "immlist"  , POS_DEAD    , do_gen_ps   , 0, SCMD_IMMLIST },
-  { "info"     , POS_SLEEPING, do_gen_ps   , 0, SCMD_INFO },
-  { "insult"   , POS_RESTING , do_insult   , 0, 0 },
-  { "invis"    , POS_DEAD    , do_invis    , LVL_IMMORT, 0 },
 
-  { "junk"     , POS_RESTING , do_drop     , 0, SCMD_JUNK },
+/*
+ * Skip whitespace characters
+ */
+void
+file_skip_whitespace(FILE* fp, const char* file, bool errors_fatal)
+{
+	int letter;
 
-  { "kill"     , POS_FIGHTING, do_kill     , 0, 0 },
-  { "kick"     , POS_FIGHTING, do_kick     , 1, 0 },
-  { "kiss"     , POS_RESTING , do_action   , 0, 0 },
+	for ( ;; ) {
+		letter = fgetc(fp);
+		if (letter == EOF || feof(fp)) {
+			log("SYSERR: unexpected eof in %s", file);
 
-  { "look"     , POS_RESTING , do_look     , 0, SCMD_LOOK },
-  { "laugh"    , POS_RESTING , do_action   , 0, 0 },
-  { "last"     , POS_DEAD    , do_last     , LVL_GOD, 0 },
-  { "leave"    , POS_STANDING, do_leave    , 0, 0 },
-  { "levels"   , POS_DEAD    , do_levels   , 0, 0 },
-  { "list"     , POS_STANDING, do_not_here , 0, 0 },
-  { "lick"     , POS_RESTING , do_action   , 0, 0 },
-  { "lock"     , POS_SITTING , do_gen_door , 0, SCMD_LOCK },
-  { "load"     , POS_DEAD    , do_load     , LVL_GOD, 0 },
-  { "love"     , POS_RESTING , do_action   , 0, 0 },
+			if (errors_fatal)
+				exit(2);
+			return;
+		}
 
-  { "moan"     , POS_RESTING , do_action   , 0, 0 },
-  { "motd"     , POS_DEAD    , do_gen_ps   , 0, SCMD_MOTD },
-  { "mail"     , POS_STANDING, do_not_here , 1, 0 },
-  { "massage"  , POS_RESTING , do_action   , 0, 0 },
-  { "medit"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_MEDIT },
-  { "mlist"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_MLIST },
-  { "mute"     , POS_DEAD    , do_wizutil  , LVL_GOD, SCMD_SQUELCH },
-  { "murder"   , POS_FIGHTING, do_hit      , 0, SCMD_MURDER },
+		if (!isspace(letter)) {
+			ungetc(letter, fp);
+			break;
+		}
+	}
+}
 
-  { "news"     , POS_SLEEPING, do_gen_ps   , 0, SCMD_NEWS },
-  { "nibble"   , POS_RESTING , do_action   , 0, 0 },
-  { "nod"      , POS_RESTING , do_action   , 0, 0 },
-  { "noauction", POS_DEAD    , do_gen_tog  , 0, SCMD_NOAUCTION },
-  { "nogossip" , POS_DEAD    , do_gen_tog  , 0, SCMD_NOGOSSIP },
-  { "nograts"  , POS_DEAD    , do_gen_tog  , 0, SCMD_NOGRATZ },
-  { "nohassle" , POS_DEAD    , do_gen_tog  , LVL_IMMORT, SCMD_NOHASSLE },
-  { "norepeat" , POS_DEAD    , do_gen_tog  , 0, SCMD_NOREPEAT },
-  { "noshout"  , POS_SLEEPING, do_gen_tog  , 1, SCMD_DEAF },
-  { "nosummon" , POS_DEAD    , do_gen_tog  , 1, SCMD_NOSUMMON },
-  { "notell"   , POS_DEAD    , do_gen_tog  , 1, SCMD_NOTELL },
-  { "notitle"  , POS_DEAD    , do_wizutil  , LVL_GOD, SCMD_NOTITLE },
-  { "nowiz"    , POS_DEAD    , do_gen_tog  , LVL_IMMORT, SCMD_NOWIZ },
-  { "nudge"    , POS_RESTING , do_action   , 0, 0 },
-  { "nuzzle"   , POS_RESTING , do_action   , 0, 0 },
 
-  { "order"    , POS_RESTING , do_order    , 1, 0 },
-  { "offer"    , POS_STANDING, do_not_here , 1, 0 },
-  { "open"     , POS_SITTING , do_gen_door , 0, SCMD_OPEN },
-  { "olc"      , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OLC_SAVEINFO },
-  { "olist"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_OLIST },
-  { "oedit"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_OEDIT },
+/* Get just one word*/
+char* 
+file_get_word(FILE* fp, const char* file, bool errors_fatal)
+{
+	static char buf[MAX_STRING_LENGTH];
+	int letter, i = 0;
 
-  { "put"      , POS_RESTING , do_put      , 0, 0 },
-  { "pat"      , POS_RESTING , do_action   , 0, 0 },
-  { "page"     , POS_DEAD    , do_page     , LVL_GOD, 0 },
-  { "pardon"   , POS_DEAD    , do_wizutil  , LVL_GOD, SCMD_PARDON },
-  { "peer"     , POS_RESTING , do_action   , 0, 0 },
-  { "pick"     , POS_STANDING, do_gen_door , 1, SCMD_PICK },
-  { "point"    , POS_RESTING , do_action   , 0, 0 },
-  { "poke"     , POS_RESTING , do_action   , 0, 0 },
-  { "policy"   , POS_DEAD    , do_gen_ps   , 0, SCMD_POLICIES },
-  { "ponder"   , POS_RESTING , do_action   , 0, 0 },
-  { "poofin"   , POS_DEAD    , do_poofset  , LVL_IMMORT, SCMD_POOFIN },
-  { "poofout"  , POS_DEAD    , do_poofset  , LVL_IMMORT, SCMD_POOFOUT },
-  { "pour"     , POS_STANDING, do_pour     , 0, SCMD_POUR },
-  { "pout"     , POS_RESTING , do_action   , 0, 0 },
-  { "prompt"   , POS_DEAD    , do_display  , 0, 0 },
-  { "practice" , POS_RESTING , do_practice , 1, 0 },
-  { "pray"     , POS_SITTING , do_action   , 0, 0 },
-  { "puke"     , POS_RESTING , do_action   , 0, 0 },
-  { "punch"    , POS_RESTING , do_action   , 0, 0 },
-  { "purr"     , POS_RESTING , do_action   , 0, 0 },
-  { "purge"    , POS_DEAD    , do_purge    , LVL_GOD, 0 },
+	/* Skip whitespace */
+	file_skip_whitespace(fp, file, errors_fatal);
 
-  { "quaff"    , POS_RESTING , do_use      , 0, SCMD_QUAFF },
-  { "qecho"    , POS_DEAD    , do_qcomm    , LVL_IMMORT, SCMD_QECHO },
-  { "quest"    , POS_DEAD    , do_gen_tog  , 0, SCMD_QUEST },
-  { "qui"      , POS_DEAD    , do_quit     , 0, 0 },
-  { "quit"     , POS_DEAD    , do_quit     , 0, SCMD_QUIT },
-  { "qsay"     , POS_RESTING , do_qcomm    , 0, SCMD_QSAY },
+	for ( ;; ) {					
+		letter = fgetc(fp);
+		if (letter == EOF || feof(fp)) {
+			log("SYSERR: unexpected eof in %s", file);
 
-  { "reply"    , POS_SLEEPING, do_reply    , 0, 0 },
-  { "rest"     , POS_RESTING , do_rest     , 0, 0 },
-  { "read"     , POS_RESTING , do_look     , 0, SCMD_READ },
-  { "reload"   , POS_DEAD    , do_reboot   , LVL_IMPL, 0 },
-  { "recite"   , POS_RESTING , do_use      , 0, SCMD_RECITE },
-  { "receive"  , POS_STANDING, do_not_here , 1, 0 },
-  { "remove"   , POS_RESTING , do_remove   , 0, 0 },
-  { "rent"     , POS_STANDING, do_not_here , 1, 0 },
-  { "report"   , POS_RESTING , do_report   , 0, 0 },
-  { "reroll"   , POS_DEAD    , do_wizutil  , LVL_GRGOD, SCMD_REROLL },
-  { "rescue"   , POS_FIGHTING, do_rescue   , 1, 0 },
-  { "restore"  , POS_DEAD    , do_restore  , LVL_GOD, 0 },
-  { "return"   , POS_DEAD    , do_return   , 0, 0 },
-  { "redit"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_REDIT },
-  { "rlist"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_RLIST },
-  { "roll"     , POS_RESTING , do_action   , 0, 0 },
-  { "roomflags", POS_DEAD    , do_gen_tog  , LVL_IMMORT, SCMD_ROOMFLAGS },
-  { "ruffle"   , POS_STANDING, do_action   , 0, 0 },
+			if (errors_fatal)
+				exit(2);
+			return "";
+		}
 
-  { "say"      , POS_RESTING , do_say      , 0, 0 },
-  { "'"        , POS_RESTING , do_say      , 0, 0 },
-  { "save"     , POS_SLEEPING, do_save     , 0, 0 },
-  { "saveall"  , POS_DEAD    , do_saveall  , LVL_BUILDER, 0},
-  { "score"    , POS_DEAD    , do_score    , 0, 0 },
-  { "scream"   , POS_RESTING , do_action   , 0, 0 },
-  { "sell"     , POS_STANDING, do_not_here , 0, 0 },
-  { "sedit"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_SEDIT },
-  { "send"     , POS_SLEEPING, do_send     , LVL_GOD, 0 },
-  { "set"      , POS_DEAD    , do_set      , LVL_GOD, 0 },
-  { "shout"    , POS_RESTING , do_gen_comm , 0, SCMD_SHOUT },
-  { "shake"    , POS_RESTING , do_action   , 0, 0 },
-  { "shiver"   , POS_RESTING , do_action   , 0, 0 },
-  { "show"     , POS_DEAD    , do_show     , LVL_IMMORT, 0 },
-  { "shrug"    , POS_RESTING , do_action   , 0, 0 },
-  { "shutdow"  , POS_DEAD    , do_shutdown , LVL_IMPL, 0 },
-  { "shutdown" , POS_DEAD    , do_shutdown , LVL_IMPL, SCMD_SHUTDOWN },
-  { "sigh"     , POS_RESTING , do_action   , 0, 0 },
-  { "sing"     , POS_RESTING , do_action   , 0, 0 },
-  { "sip"      , POS_RESTING , do_drink    , 0, SCMD_SIP },
-  { "sit"      , POS_RESTING , do_sit      , 0, 0 },
-  { "skillset" , POS_SLEEPING, do_skillset , LVL_GRGOD, 0 },
-  { "sleep"    , POS_SLEEPING, do_sleep    , 0, 0 },
-  { "slap"     , POS_RESTING , do_action   , 0, 0 },
-  { "slist"    , POS_SLEEPING, do_oasis    , LVL_BUILDER, SCMD_OASIS_SLIST },
-  { "slowns"   , POS_DEAD    , do_gen_tog  , LVL_IMPL, SCMD_SLOWNS },
-  { "smile"    , POS_RESTING , do_action   , 0, 0 },
-  { "smirk"    , POS_RESTING , do_action   , 0, 0 },
-  { "snicker"  , POS_RESTING , do_action   , 0, 0 },
-  { "snap"     , POS_RESTING , do_action   , 0, 0 },
-  { "snarl"    , POS_RESTING , do_action   , 0, 0 },
-  { "sneeze"   , POS_RESTING , do_action   , 0, 0 },
-  { "sneak"    , POS_STANDING, do_sneak    , 1, 0 },
-  { "sniff"    , POS_RESTING , do_action   , 0, 0 },
-  { "snore"    , POS_SLEEPING, do_action   , 0, 0 },
-  { "snowball" , POS_STANDING, do_action   , LVL_IMMORT, 0 },
-  { "snoop"    , POS_DEAD    , do_snoop    , LVL_GOD, 0 },
-  { "snuggle"  , POS_RESTING , do_action   , 0, 0 },
-  { "socials"  , POS_DEAD    , do_commands , 0, SCMD_SOCIALS },
-  { "split"    , POS_SITTING , do_split    , 1, 0 },
-  { "spank"    , POS_RESTING , do_action   , 0, 0 },
-  { "spit"     , POS_STANDING, do_action   , 0, 0 },
-  { "squeeze"  , POS_RESTING , do_action   , 0, 0 },
-  { "stand"    , POS_RESTING , do_stand    , 0, 0 },
-  { "stare"    , POS_RESTING , do_action   , 0, 0 },
-  { "stat"     , POS_DEAD    , do_stat     , LVL_IMMORT, 0 },
-  { "steal"    , POS_STANDING, do_steal    , 1, 0 },
-  { "steam"    , POS_RESTING , do_action   , 0, 0 },
-  { "stroke"   , POS_RESTING , do_action   , 0, 0 },
-  { "strut"    , POS_STANDING, do_action   , 0, 0 },
-  { "sulk"     , POS_RESTING , do_action   , 0, 0 },
-  { "switch"   , POS_DEAD    , do_switch   , LVL_GRGOD, 0 },
-  { "syslog"   , POS_DEAD    , do_syslog   , LVL_IMMORT, 0 },
+		if (isspace(letter))
+			break;	
 
-  { "tell"     , POS_DEAD    , do_tell     , 0, 0 },
-  { "tackle"   , POS_RESTING , do_action   , 0, 0 },
-  { "take"     , POS_RESTING , do_get      , 0, 0 },
-  { "tango"    , POS_STANDING, do_action   , 0, 0 },
-  { "taunt"    , POS_RESTING , do_action   , 0, 0 },
-  { "taste"    , POS_RESTING , do_eat      , 0, SCMD_TASTE },
-  { "teleport" , POS_DEAD    , do_teleport , LVL_GOD, 0 },
-  { "tedit"    , POS_DEAD    , do_tedit    , LVL_GRGOD, 0 },  /* XXX: Oasisify */
-  { "thank"    , POS_RESTING , do_action   , 0, 0 },
-  { "think"    , POS_RESTING , do_action   , 0, 0 },
-  { "thaw"     , POS_DEAD    , do_wizutil  , LVL_FREEZE, SCMD_THAW },
-  { "title"    , POS_DEAD    , do_title    , 0, 0 },
-  { "tickle"   , POS_RESTING , do_action   , 0, 0 },
-  { "time"     , POS_DEAD    , do_time     , 0, 0 },
-  { "toggle"   , POS_DEAD    , do_toggle   , 0, 0 },
-  { "track"    , POS_STANDING, do_track    , 0, 0 },
-  { "trackthru", POS_DEAD    , do_gen_tog  , LVL_IMPL, SCMD_TRACK },
-  { "transfer" , POS_SLEEPING, do_trans    , LVL_GOD, 0 },
-  { "trigedit" , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_TRIGEDIT},
-  { "twiddle"  , POS_RESTING , do_action   , 0, 0 },
-  { "typo"     , POS_DEAD    , do_gen_write, 0, SCMD_TYPO },
+		if (!isspace(letter))
+			continue;
+		buf[i++] = letter;
 
-  { "unlock"   , POS_SITTING , do_gen_door , 0, SCMD_UNLOCK },
-  { "ungroup"  , POS_DEAD    , do_ungroup  , 0, 0 },
-  { "unban"    , POS_DEAD    , do_unban    , LVL_GRGOD, 0 },
-  { "unaffect" , POS_DEAD    , do_wizutil  , LVL_GOD, SCMD_UNAFFECT },
-  { "uptime"   , POS_DEAD    , do_date     , LVL_IMMORT, SCMD_UPTIME },
-  { "use"      , POS_SITTING , do_use      , 1, SCMD_USE },
-  { "users"    , POS_DEAD    , do_users    , LVL_IMMORT, 0 },
+		if (i >= MAX_STRING_LENGTH) {
+			log("SYSERR: word too long in %s", file);
 
-  { "value"    , POS_STANDING, do_not_here , 0, 0 },
-  { "version"  , POS_DEAD    , do_gen_ps   , 0, SCMD_VERSION },
-  { "visible"  , POS_RESTING , do_visible  , 1, 0 },
-  { "vnum"     , POS_DEAD    , do_vnum     , LVL_IMMORT, 0 },
-  { "vstat"    , POS_DEAD    , do_vstat    , LVL_IMMORT, 0 },
+			if (errors_fatal)
+				exit(2);
+			return "";
+		}
+	}
+	return buf;
+}
 
-  { "wake"     , POS_SLEEPING, do_wake     , 0, 0 },
-  { "wave"     , POS_RESTING , do_action   , 0, 0 },
-  { "wear"     , POS_RESTING , do_wear     , 0, 0 },
-  { "weather"  , POS_RESTING , do_weather  , 0, 0 },
-  { "who"      , POS_DEAD    , do_who      , 0, 0 },
-  { "whoami"   , POS_DEAD    , do_gen_ps   , 0, SCMD_WHOAMI },
-  { "where"    , POS_RESTING , do_where    , 1, 0 },
-  { "whisper"  , POS_RESTING , do_spec_comm, 0, SCMD_WHISPER },
-  { "whine"    , POS_RESTING , do_action   , 0, 0 },
-  { "whistle"  , POS_RESTING , do_action   , 0, 0 },
-  { "wield"    , POS_RESTING , do_wield    , 0, 0 },
-  { "wiggle"   , POS_STANDING, do_action   , 0, 0 },
-  { "wimpy"    , POS_DEAD    , do_wimpy    , 0, 0 },
-  { "wink"     , POS_RESTING , do_action   , 0, 0 },
-  { "withdraw" , POS_STANDING, do_not_here , 1, 0 },
-  { "wiznet"   , POS_DEAD    , do_wiznet   , LVL_IMMORT, 0 },
-  { ";"        , POS_DEAD    , do_wiznet   , LVL_IMMORT, 0 },
-  { "wizhelp"  , POS_SLEEPING, do_commands , LVL_IMMORT, SCMD_WIZHELP },
-  { "wizlist"  , POS_DEAD    , do_gen_ps   , 0, SCMD_WIZLIST },
-  { "wizlock"  , POS_DEAD    , do_wizlock  , LVL_IMPL, 0 },
-  { "worship"  , POS_RESTING , do_action   , 0, 0 },
-  { "write"    , POS_STANDING, do_write    , 1, 0 },
+/* Get the command hash */
+struct _command_head* 
+chash_get(unsigned int slot) {
+	return &cmd_hash[slot];
+}
 
-  { "yawn"     , POS_RESTING , do_action   , 0, 0 },
-  { "yodel"    , POS_RESTING , do_action   , 0, 0 },
+/*
+ * Perform a checked insertion.. this means that a FIXED command
+ * (stored in the master table) will be filled in instead of a new
+ * command being inserted
+ */
+bool
+check_insert_command(CMD_DATA* cmdp, t_language lang)
+{
+	long slot;
+	CMD_DATA* srch;
+       
+	if (cmdp == NULL)
+		return FALSE;
+	if (cmdp->override == 1) {
+		return insert_command(cmdp, lang);
+	}
+	slot = hash_command(cmdp->name);
 
-  { "zreset"   , POS_DEAD    , do_zreset   , LVL_GRGOD, 0 },
-  { "zedit"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_ZEDIT },
-  { "zlist"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_ZLIST },
+	for(srch = LIST_FIRST(&cmd_hash[slot]); srch;
+			srch = LIST_NEXT(srch, cmd_lst))
+	{
+		if (srch->language != lang || !IS_SET(srch->flags, CMD_FIXED))
+			continue;
 
-  /* DG trigger commands */
-  { "attach"   , POS_DEAD    , do_attach   , LVL_BUILDER, 0 },
-  { "detach"   , POS_DEAD    , do_detach   , LVL_BUILDER, 0 },
-  { "tlist"    , POS_DEAD    , do_oasis    , LVL_BUILDER, SCMD_OASIS_TLIST },
-  { "tstat"    , POS_DEAD    , do_tstat    , LVL_BUILDER, 0 },
-  { "masound"  , POS_DEAD    , do_masound  , -1, 0 },
-  { "mkill"    , POS_STANDING, do_mkill    , -1, 0 },
-  { "mjunk"    , POS_SITTING , do_mjunk    , -1, 0 },
-  { "mdamage"  , POS_DEAD    , do_mdamage  , -1, 0 },
-  { "mdoor"    , POS_DEAD    , do_mdoor    , -1, 0 },
-  { "mecho"    , POS_DEAD    , do_mecho    , -1, 0 },
-  { "mechoaround" , POS_DEAD , do_mechoaround, -1, 0 },
-  { "msend"    , POS_DEAD    , do_msend    , -1, 0 },
-  { "mload"    , POS_DEAD    , do_mload    , -1, 0 },
-  { "mpurge"   , POS_DEAD    , do_mpurge   , -1, 0 },
-  { "mgoto"    , POS_DEAD    , do_mgoto    , -1, 0 },
-  { "mat"      , POS_DEAD    , do_mat      , -1, 0 },
-  { "mteleport", POS_DEAD    , do_mteleport, -1, 0 },
-  { "mforce"   , POS_DEAD    , do_mforce   , -1, 0 },
-  { "mhunt"    , POS_DEAD    , do_mhunt    , -1, 0 },
-  { "mremember", POS_DEAD    , do_mremember, -1, 0 },
-  { "mforget"  , POS_DEAD    , do_mforget  , -1, 0 },
-  { "mtransform",POS_DEAD    , do_mtransform,-1, 0 },
-  { "mzoneecho", POS_DEAD    , do_mzoneecho, -1, 0 },
-  { "vdelete"  , POS_DEAD    , do_vdelete  , LVL_BUILDER, 0 },
-  { "mfollow"  , POS_DEAD    , do_mfollow  , -1, 0 },
+		if (has_call_fun(srch))
+			continue;
 
-  { "\n", 0, 0, 0, 0 } };	/* this must be last */
+		if (strcmp(cmdp->name, srch->name))
+			continue;
+
+		switch(lang)
+		{
+#ifdef HAVE_PYTHON
+			case PYTHON:
+				srch->py_callfun = cmdp->py_callfun;
+				cmdp->py_callfun = NULL;
+				Py_INCREF(srch->py_callfun);
+				free_command(cmdp);
+				return TRUE;
+#endif
+			case NATIVE:
+				srch->native_callfun = cmdp->native_callfun;
+				free_command(cmdp);
+				return TRUE;
+			default: return FALSE;
+		}
+	}
+
+	return insert_command(cmdp, lang);
+}
+
+CMD_DATA* find_sorted_command_before(CMD_DATA* ptr, long slot)
+{
+	CMD_DATA* search = NULL, *n, *o;
+	long slot_search = slot;
+	int cmp;
+	
+	while(search == NULL && slot_search >= 0)
+	{
+		for(search = LIST_FIRST(&cmd_hash[slot_search]); search;
+                     search = LIST_NEXT(search, cmd_lst))
+		{
+			cmp = strcasecmp(ptr->name, search->name);
+			if (cmp <= 0)
+				break;
+		}
+		slot_search--;
+	}
+
+	if (search != NULL) {
+		for( ; LIST_NEXT(search, cmd_sorted_lst) ; search = n ) 
+		{
+			n = LIST_NEXT(search, cmd_sorted_lst);
+
+			if (n == NULL)
+				return search;
+
+			if (strcasecmp(ptr->name, n->name) >= 0)
+				return search;
+		}
+	}
+
+	for(search = LIST_FIRST(&sorted_cmd_list); search; search = n)
+	{
+		n = LIST_NEXT(search, cmd_sorted_lst);
+
+		if (n == NULL)
+			return search;
+
+		if (strcasecmp(ptr->name, n->name) < 0)
+			return search;
+
+		if (strcasecmp(ptr->name, n->name) <= 0)
+			return search;
+	}
+
+	return LIST_FIRST(&sorted_cmd_list);
+}
+
+
+bool
+insert_command(struct command_info* cmdSpec,
+               t_language lang)
+{
+	struct command_info* p, *p2;
+	unsigned int slot = hash_command(cmdSpec->name);
+	int c;
+
+	LIST_ENTRY_INIT(cmdSpec, cmd_lst);
+	LIST_ENTRY_INIT(cmdSpec, cmd_sorted_lst);
+	cmdSpec->hashcode = slot;
+	cmdSpec->language = lang;
+
+	for(p = LIST_FIRST(&cmd_hash[slot]); p && LIST_NEXT(p, cmd_lst);
+            p = LIST_NEXT(p, cmd_lst))
+	{
+		if (!cmdSpec->override && !str_cmp(p->name, cmdSpec->name))
+		{
+			free_command(cmdSpec);
+			return FALSE;
+		}
+		if (LIST_NEXT(p, cmd_lst)->priority > cmdSpec->priority)
+			break;
+	}
+
+	for(p2 = p; p2; p2 = LIST_NEXT(p2, cmd_lst))
+	{
+		if (!cmdSpec->override && !str_cmp(p2->name, cmdSpec->name)) {
+			free_command(cmdSpec);
+			return FALSE;
+		}
+	}
+
+#ifdef HAVE_PYTHON
+	if (cmdSpec->py_callfun) {
+		Py_INCREF(cmdSpec->py_callfun);
+	}
+#endif
+
+	/* Maintain the sorted list*/
+	p2 = find_sorted_command_before(cmdSpec, slot);
+
+	if (p2 == NULL) {
+		LIST_INSERT_HEAD(&sorted_cmd_list, cmdSpec, cmd_sorted_lst);
+	}
+	else {
+		c = strcasecmp(cmdSpec->name, p2->name);
+
+		if (c < 0) {
+			LIST_INSERT_BEFORE(p2, cmdSpec, cmd_sorted_lst);
+		}
+		else {
+			LIST_INSERT_AFTER(p2, cmdSpec, cmd_sorted_lst);		
+		}
+	}
+
+
+	if (!p)
+	{
+		LIST_INSERT_HEAD(&cmd_hash[slot], cmdSpec, cmd_lst);
+	}
+	else
+	{
+		if (cmdSpec->priority >= p->priority)
+			LIST_INSERT_AFTER(p, cmdSpec, cmd_lst);
+		else
+			LIST_INSERT_BEFORE(p, cmdSpec, cmd_lst);
+	}
+	
+	return TRUE;
+}
+
+bool
+has_call_fun(CMD_DATA* cmdSpec)
+{
+	if (cmdSpec->native_callfun)
+		return TRUE;
+#ifdef HAVE_PYTHON
+	if (cmdSpec->py_callfun)
+		return TRUE;
+#endif
+	return FALSE;
+}
+
+void
+free_command_handler(CMD_DATA* cmdSpec)
+{
+#ifdef HAVE_PYTHON
+	if (cmdSpec->py_callfun != NULL) {
+		Py_DECREF(cmdSpec->py_callfun);
+		cmdSpec->py_callfun = 0;
+	}
+#endif
+}
+
+static void 
+free_command(CMD_DATA* cmdSpec)
+{
+	free_command_handler(cmdSpec);
+	free(cmdSpec->name);
+	free(cmdSpec);
+}
+
+
+void 
+clear_commands(t_language lang)
+{
+	struct command_info *c, *c_next;
+	long slot;
+
+	for(slot = 0; slot < 256; slot++) {
+		if (LIST_FIRST(&cmd_hash[slot]) == NULL)
+			continue;
+		for(c = LIST_FIRST(&cmd_hash[slot]); c; c = c_next)
+		{
+			c_next = LIST_NEXT(c, cmd_lst);
+
+			if (c->language != lang)
+				continue;
+
+			if (IS_SET(c->flags, CMD_FIXED))
+			{
+				free_command_handler(c);
+				continue;
+			}
+			LIST_REMOVE(c, cmd_lst);
+			LIST_REMOVE(c, cmd_sorted_lst);
+			free_command(c);
+		}
+	}
+}
+
+void 
+deregister_command_byname(const char* command_name, t_language lang)
+{
+	long slot;
+	struct command_info *c, *c_next;
+
+	if (!command_name)
+		return;
+
+	slot = hash_command(command_name);
+	for(c = LIST_FIRST(&cmd_hash[slot]); c; c = c_next)
+	{
+		c_next = LIST_NEXT(c, cmd_lst);
+
+		if (c->language == lang && !str_cmp(command_name, c->name))
+		{
+			LIST_REMOVE(c, cmd_lst);
+			LIST_REMOVE(c, cmd_sorted_lst);
+			free_command(c);
+		}		
+	}
+}
+
+void
+deregister_command_predicate(bool (* dereg_predicate)(CMD_DATA *, void*), void *data,
+                             t_language lang)
+{
+	long slot;
+	struct command_info *c, *c_next;
+
+	for(slot = 0; slot < 256; slot++)
+		for(c = LIST_FIRST(&cmd_hash[slot]); c; c = c_next)
+		{
+			c_next = LIST_NEXT(c, cmd_lst);
+
+			if (c->language == lang && dereg_predicate(c, data))
+			{
+				LIST_REMOVE(c, cmd_lst);
+				LIST_REMOVE(c, cmd_sorted_lst);
+				free_command(c);
+			}		
+		}
+}
+
+
+#ifdef HAVE_PYTHON
+void 
+deregister_command_pyfunc(PyObject* fun, t_language lang)
+{
+	long slot;
+	struct command_info *c, *c_next;
+
+	if (fun == NULL)
+		return;
+
+	for(slot = 0; slot < 256; slot++)
+	{
+		for(c = LIST_FIRST(&cmd_hash[slot]); c; c = c_next)
+		{
+			c_next = LIST_NEXT(c, cmd_lst);
+	
+			if (c->language == PYTHON && c->py_callfun == fun)
+			{
+				LIST_REMOVE(c, cmd_lst);
+				LIST_REMOVE(c, cmd_sorted_lst);
+				free_command(c);
+			}		
+		}
+	}
+}
+#endif
+
+
+void 
+deregister_command_cfunc(
+	CMD_FUN* fun,
+	t_language lang)
+{
+	long slot;
+	struct command_info *c, *c_next;
+
+	for(slot = 0; slot < 256; slot++)
+	{
+		for(c = LIST_FIRST(&cmd_hash[slot]); c; c = c_next)
+		{
+			c_next = LIST_NEXT(c, cmd_lst);
+	
+			if (c->language == PYTHON && c->native_callfun == fun)
+			{
+				LIST_REMOVE(c, cmd_lst);
+				free_command(c);
+			}		
+		}
+	}
+}
+
+int 
+check_command(
+		struct char_data* ch, 
+		char* arg, 
+		char* text, 
+		int flags,
+		int subcmd, 
+		int override
+		)
+{
+	unsigned int slot = hash_command(arg), length;
+	struct command_info* cmd, *cmd_next;
+	int cant_choose = 0;
+
+	length = strlen(arg);
+
+	if (!IS_NPC(ch) && PLR_FLAGGED(ch, PLR_FROZEN) && GET_LEVEL(ch) < LVL_IMPL) 
+	{
+		send_to_char(ch, "You try, but the mind-numbing cold prevents you...\r\n");
+		return 1;
+	}
+	
+	for(cmd = LIST_FIRST(&cmd_hash[slot]); cmd; cmd = cmd_next)
+	{
+		cmd_next = LIST_NEXT(cmd, cmd_lst);
+
+		cant_choose = 0;
+		
+		if (override) {
+			if (cmd->override == 0)
+				cant_choose = 1;
+		}
+		else {
+			if (cmd->override == 1)
+				cant_choose = 1;
+		}	
+		if (cmd->minimum_level > GET_LEVEL(ch))
+			continue;
+		if (IS_SET(cmd->flags, CMD_NOABBREV) && strlen(cmd->name) != length)
+			continue;
+		
+		if (!strncmp(cmd->name, arg, length)) {
+			if (cant_choose)
+				return 0;
+			break;
+		}
+	}
+	
+	if (cmd)
+	{
+		if (IS_NPC(ch) && cmd->minimum_level >= LVL_IMMORT)
+		{
+			send_to_char(ch, "You can't use immortal commands while switched.\r\n");
+			return 1;
+		}
+		  
+		if (cmd->minimum_position > GET_POS(ch)) {
+			send_bad_position_message(ch);
+			return 1;
+		}
+
+		switch(cmd->language)
+		{
+#ifdef HAVE_PYTHON
+			case PYTHON:
+				if (cmd->py_callfun == Py_None)
+					return 0;
+				py_command_execute(ch, arg, text, cmd, subcmd, 1);
+
+				return 1;
+				break;
+#endif
+
+			case NATIVE:
+				if (no_specials || !special(ch, cmd, flags, text)) {
+					if (cmd->native_callfun == 0)
+					{
+						send_to_char(ch, "Sorry, that command is"
+								 " not available.\r\n");
+					}
+					else
+					cmd->native_callfun(ch, text, cmd, flags, cmd->subcmd);
+				}
+				return 1;
+			default:
+				return 0;
+		}
+	}
+	return 0;
+}
 
 
 const char *fill[] =
@@ -643,14 +861,47 @@ const char *reserved[] =
   "\n"
 };
 
+void invalid_command_message(struct char_data* ch)
+{
+	send_to_char(ch, "Huh?!?\r\n");
+}
+
+
+void send_bad_position_message(struct char_data* ch)
+{
+    switch (GET_POS(ch)) {
+    case POS_DEAD:
+      send_to_char(ch, "Lie still; you are DEAD!!! :-(\r\n");
+      break;
+    case POS_INCAP:
+    case POS_MORTALLYW:
+      send_to_char(ch, "You are in a pretty bad shape, unable to do anything!\r\n");
+      break;
+    case POS_STUNNED:
+      send_to_char(ch, "All you can do right now is think about the stars!\r\n");
+      break;
+    case POS_SLEEPING:
+      send_to_char(ch, "In your dreams, or what?\r\n");
+      break;
+    case POS_RESTING:
+      send_to_char(ch, "Nah... You feel too relaxed to do that..\r\n");
+      break;
+    case POS_SITTING:
+      send_to_char(ch, "Maybe you should get on your feet first?\r\n");
+      break;
+    case POS_FIGHTING:
+      send_to_char(ch, "No way!  You're fighting for your life!\r\n");
+      break;
+  }
+}
+
 /*
  * This is the actual command interpreter called from game_loop() in comm.c
  * It makes sure you are the proper level and position to execute the command,
  * then calls the appropriate function.
  */
-void command_interpreter(struct char_data *ch, char *argument)
+void command_interpreter(struct char_data *ch, char *argument, int cmd_flags)
 {
-  int cmd, length;
   char *line;
   char arg[MAX_INPUT_LENGTH];
 
@@ -678,51 +929,25 @@ void command_interpreter(struct char_data *ch, char *argument)
    */
   /* otherwise, find the command */
   {
-    int cont;                                            /* continue the command checks */
-    cont = command_wtrigger(ch, arg, line);              /* any world triggers ? */
-    if (!cont) cont = command_mtrigger(ch, arg, line);   /* any mobile triggers ? */
-    if (!cont) cont = command_otrigger(ch, arg, line);   /* any object triggers ? */
-    if (cont) return;                                    /* yes, command trigger took over */
+    if (script_hook_command(HOOK_COMMAND_OVERRIDE, ch, str_to_param(arg), str_to_param(line))) 
+	    return;
   }
-  for (length = strlen(arg), cmd = 0; *cmd_info[cmd].command != '\n'; cmd++)
+
+  if ( check_command(ch, arg, line, cmd_flags, 0, 1) ||
+       check_command(ch, arg, line, cmd_flags, 0, 0))
+  {
+	  return;
+  }
+  
+/*  for (length = strlen(arg), cmd = 0; *cmd_info[cmd].command != '\n'; cmd++)
     if (!strncmp(cmd_info[cmd].command, arg, length))
       if (GET_LEVEL(ch) >= cmd_info[cmd].minimum_level)
-	break;
-
-  if (*cmd_info[cmd].command == '\n')
-    send_to_char(ch, "Huh?!?\r\n");
-  else if (!IS_NPC(ch) && PLR_FLAGGED(ch, PLR_FROZEN) && GET_LEVEL(ch) < LVL_IMPL)
-    send_to_char(ch, "You try, but the mind-numbing cold prevents you...\r\n");
-  else if (cmd_info[cmd].command_pointer == NULL)
-    send_to_char(ch, "Sorry, that command hasn't been implemented yet.\r\n");
-  else if (IS_NPC(ch) && cmd_info[cmd].minimum_level >= LVL_IMMORT)
-    send_to_char(ch, "You can't use immortal commands while switched.\r\n");
-  else if (GET_POS(ch) < cmd_info[cmd].minimum_position)
-    switch (GET_POS(ch)) {
-    case POS_DEAD:
-      send_to_char(ch, "Lie still; you are DEAD!!! :-(\r\n");
-      break;
-    case POS_INCAP:
-    case POS_MORTALLYW:
-      send_to_char(ch, "You are in a pretty bad shape, unable to do anything!\r\n");
-      break;
-    case POS_STUNNED:
-      send_to_char(ch, "All you can do right now is think about the stars!\r\n");
-      break;
-    case POS_SLEEPING:
-      send_to_char(ch, "In your dreams, or what?\r\n");
-      break;
-    case POS_RESTING:
-      send_to_char(ch, "Nah... You feel too relaxed to do that..\r\n");
-      break;
-    case POS_SITTING:
-      send_to_char(ch, "Maybe you should get on your feet first?\r\n");
-      break;
-    case POS_FIGHTING:
-      send_to_char(ch, "No way!  You're fighting for your life!\r\n");
-      break;
-  } else if (no_specials || !special(ch, cmd, line))
-    ((*cmd_info[cmd].command_pointer) (ch, line, cmd, cmd_info[cmd].subcmd));
+	break;*/
+  
+    if (script_hook_command(HOOK_COMMAND_ENTERED, ch, str_to_param(arg), 
+                           str_to_param(line)))
+	    return;
+    invalid_command_message(ch);
 }
 
 /**************************************************************************
@@ -1154,19 +1379,19 @@ void half_chop(char *string, char *arg1, char *arg2)
 
 
 /* Used in specprocs, mostly.  (Exactly) matches "command" to cmd number */
-int find_command(const char *command)
+CMD_DATA* find_command(const char *command)
 {
-  int cmd;
+  long slot = hash_command(command);
+  CMD_DATA* cmdp;
 
-  for (cmd = 0; *cmd_info[cmd].command != '\n'; cmd++)
-    if (!strcmp(cmd_info[cmd].command, command))
-      return (cmd);
-
-  return (-1);
+  for(cmdp = LIST_FIRST(&cmd_hash[slot]); cmdp; cmdp = LIST_NEXT(cmdp, cmd_lst))
+	  if (!str_cmp(cmdp->name, command))
+		  return cmdp;
+  return NULL;
 }
 
 
-int special(struct char_data *ch, int cmd, char *arg)
+int special(struct char_data *ch, CMD_DATA* commandp, int cmd_flags, char *arg)
 {
   struct obj_data *i;
   struct char_data *k;
@@ -1174,31 +1399,31 @@ int special(struct char_data *ch, int cmd, char *arg)
 
   /* special in room? */
   if (GET_ROOM_SPEC(IN_ROOM(ch)) != NULL)
-    if (GET_ROOM_SPEC(IN_ROOM(ch)) (ch, world + IN_ROOM(ch), cmd, arg))
+    if (GET_ROOM_SPEC(IN_ROOM(ch)) (ch, world + IN_ROOM(ch), commandp, arg, cmd_flags))
       return (1);
 
   /* special in equipment list? */
   for (j = 0; j < NUM_WEARS; j++)
     if (GET_EQ(ch, j) && GET_OBJ_SPEC(GET_EQ(ch, j)) != NULL)
-      if (GET_OBJ_SPEC(GET_EQ(ch, j)) (ch, GET_EQ(ch, j), cmd, arg))
+      if (GET_OBJ_SPEC(GET_EQ(ch, j)) (ch, GET_EQ(ch, j), commandp, arg, cmd_flags))
 	return (1);
 
   /* special in inventory? */
   for (i = ch->carrying; i; i = i->next_content)
     if (GET_OBJ_SPEC(i) != NULL)
-      if (GET_OBJ_SPEC(i) (ch, i, cmd, arg))
+      if (GET_OBJ_SPEC(i) (ch, i, commandp, arg, cmd_flags))
 	return (1);
 
   /* special in mobile present? */
   for (k = world[IN_ROOM(ch)].people; k; k = k->next_in_room)
     if (!MOB_FLAGGED(k, MOB_NOTDEADYET))
-      if (GET_MOB_SPEC(k) && GET_MOB_SPEC(k) (ch, k, cmd, arg))
+      if (GET_MOB_SPEC(k) && GET_MOB_SPEC(k) (ch, k, commandp, arg, cmd_flags))
 	return (1);
 
   /* special in object present? */
   for (i = world[IN_ROOM(ch)].contents; i; i = i->next_content)
     if (GET_OBJ_SPEC(i) != NULL)
-      if (GET_OBJ_SPEC(i) (ch, i, cmd, arg))
+      if (GET_OBJ_SPEC(i) (ch, i, commandp, arg, cmd_flags))
 	return (1);
 
   return (0);
@@ -1268,7 +1493,7 @@ int perform_dupe_check(struct descriptor_data *d)
     } else if (k->character && GET_IDNUM(k->character) == id && k->original) {
       /* Character taking over their own body, while an immortal was switched to it. */
 
-      do_return(k->character, NULL, 0, 0);
+      do_return(k->character, NULL, 0, 0, 0);
     } else if (k->character && GET_IDNUM(k->character) == id) {
       /* Character taking over their own body. */
 
@@ -1702,9 +1927,7 @@ void nanny(struct descriptor_data *d, char *arg)
 
       /* with the copyover patch, this next line goes in enter_player_game() */
       read_saved_vars(d->character);
-
-      greet_mtrigger(d->character, -1);
-      greet_memory_mtrigger(d->character);
+      check_null_hooks(HOOK_PLAYER_ENTERED_GAME, d->character, SNull, SNull);
 
       act("$n has entered the game.", TRUE, d->character, 0, 0, TO_ROOM);
 

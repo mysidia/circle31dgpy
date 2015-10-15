@@ -4,9 +4,15 @@
 *         object commands.                                                *
 *                                                                         *
 *                                                                         *
-*  $Author: galion $
-*  $Date: 1996/08/04 23:10:16 $
-*  $Revision: 3.8 $
+*  $Author: egreen $
+*  $Date: 1996/09/30 21:27:54 $
+*  $Revision: 3.7 $
+
+*  $Author: root $
+*  $Date: 2004/03/07 16:14:16 $
+*  $Revision: 1.1.1.1 $
+*
+* MODIFIED: MCALL added for py scripts
 **************************************************************************/
 
 #include "conf.h"
@@ -15,18 +21,19 @@
 
 #include "structs.h"
 #include "screen.h"
-#include "dg_scripts.h"
 #include "utils.h"
 #include "comm.h"
 #include "interpreter.h"
 #include "handler.h"
 #include "db.h"
 #include "constants.h"
+#include "genscript.h"
 
 extern struct room_data *world;
 extern struct index_data *obj_index;
 extern const char *dirs[];
 extern int dg_owner_purged;
+extern const struct obj_command_info obj_cmd_info[];
 
 void obj_command_interpreter(obj_data *obj, char *argument);
 void send_char_pos(struct char_data *ch, int dam);
@@ -137,6 +144,14 @@ room_rnum find_obj_target_room(obj_data *obj, char *rawroomstr)
 
 /* Object commands */
 
+OCMD(do_py_ocall)
+{
+#ifdef HAVE_PYTHON
+		python_obj_call(obj, argument, obj_cmd_info[cmd].command, subcmd);
+		return;
+#endif
+}
+
 OCMD(do_oecho)
 {
     int room;
@@ -182,7 +197,7 @@ OCMD(do_oforce)
                 next_ch = ch->next_in_room;
                 if (valid_dg_target(ch, 0))
                 {
-                    command_interpreter(ch, line);
+                    command_interpreter(ch, line, CMDPASS_SCRIPTFORCE);
                 }
             }
         }      
@@ -194,7 +209,7 @@ OCMD(do_oforce)
         {
             if (valid_dg_target(ch, 0))
             {
-                command_interpreter(ch, line);
+                command_interpreter(ch, line, CMDPASS_SCRIPTFORCE);
             }
         }
     
@@ -432,7 +447,7 @@ OCMD(do_oteleport)
               continue;
             char_from_room(ch);
             char_to_room(ch, target);
-            enter_wtrigger(&world[IN_ROOM(ch)], ch, -1);
+            script_char_enter_room_trigger(&world[IN_ROOM(ch)], ch, -1);
         }
     }
   
@@ -442,7 +457,7 @@ OCMD(do_oteleport)
           if (valid_dg_target(ch, DG_ALLOW_GODS)) {
             char_from_room(ch);
             char_to_room(ch, target);
-            enter_wtrigger(&world[IN_ROOM(ch)], ch, -1);
+            script_char_enter_room_trigger(&world[IN_ROOM(ch)], ch, -1);
           }
         }
     
@@ -481,7 +496,9 @@ OCMD(do_dgoload)
             return;
         }
         char_to_room(mob, room);
-        load_mtrigger(mob);
+	if (IS_SET(script_mob_loaded(&mob), SCRIPT_RET_SUBJECT_DEAD)) {
+		return;
+	}
     }
      
     else if (is_abbrev(arg1, "obj"))
@@ -493,7 +510,9 @@ OCMD(do_dgoload)
         }
 
         obj_to_room(object, room);
-        load_otrigger(object);
+        if (IS_SET(script_obj_loaded(&object), SCRIPT_RET_OBJECT_DEAD)) {
+            return;
+        }
     }
          
     else
@@ -690,6 +709,7 @@ const struct obj_command_info obj_cmd_info[] = {
     { "RESERVED", 0, 0 },/* this must be first -- for specprocs */
 
     { "oat "        , do_oat      , 0 },
+    { "py.ocall "    , do_py_ocall, 0 },
     { "odoor "      , do_odoor    , 0 },
     { "odamage "    , do_odamage,   0 },
     { "oecho "      , do_oecho    , 0 },

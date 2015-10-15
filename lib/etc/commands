@@ -1,0 +1,3896 @@
+#COMMAND
+Number     0
+Priority  49
+Name      "RESERVED"
+Position   0
+Code      "do_move"
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number     1
+Priority   0
+Name      "north"
+Position   8
+Code      "do_move"
+Level       0
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number     2
+Priority   0
+Name      "east"
+Position   8
+Code      "do_move"
+Level       0
+Subcmd      2
+Language  NATIVE
+End
+
+#COMMAND
+Number     3
+Priority   0
+Name      "south"
+Position   8
+Code      "do_move"
+Level       0
+Subcmd      3
+Language  NATIVE
+End
+
+#COMMAND
+Number     4
+Priority   0
+Name      "west"
+Position   8
+Code      "do_move"        
+Level       0
+Subcmd      4
+Language  NATIVE
+End
+
+#COMMAND
+Number     5
+Priority   0
+Name      "up"
+Position   8
+Code      "do_move"
+Level       0
+Subcmd      5
+Language  NATIVE
+End
+
+#COMMAND
+Number     6
+Priority   0
+Name      "down"
+Position   8
+Code      "do_move"        
+Level       0
+Subcmd      6
+Language  NATIVE
+End
+
+#COMMAND
+Number     8
+Priority  49
+Name      "at"
+Position   0
+Code      "do_at"
+Level      LVL_IMMORT
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number     9
+Priority  49
+Name      "advance"
+Position   0
+Code       "do_advance"          
+Level      LVL_IMPL
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    10
+Priority  49
+Name      "alias"
+Position   0
+Code       "do_alias"            
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    11
+Priority  49
+Name      "accuse"
+Position   6
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    12
+Priority  49
+Name      "applaud"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    13
+Priority  49
+Name      "assist"
+Position   7
+Code       "do_assist"           
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    14
+Priority  49
+Name      "ask"
+Position   5
+Code       "do_spec_comm"        
+Level       0
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    15
+Priority  49
+Name      "auction"
+Position   4
+Code       "do_gen_comm"         
+Level       0
+Subcmd      3
+Language  NATIVE
+End
+
+#COMMAND
+Number    16
+Priority  49
+Name      "autoexit"
+Position   0
+Code       "do_gen_tog"          
+Level       0
+Subcmd     15
+Language  NATIVE
+End
+
+#COMMAND
+Number    17
+Priority  49
+Name      "bounce"
+Position   8
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    18
+Priority  49
+Name      "backstab"
+Position   8
+Code       "do_backstab"         
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    19
+Priority  49
+Name      "ban"
+Position   0
+Code       "do_ban"              
+Level      LVL_GRGOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    20
+Priority  49
+Name      "balance"
+Position   8
+Code       "do_not_here"         
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    21
+Priority  49
+Name      "bash"
+Position   7
+Code       "do_bash"             
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    22
+Priority  49
+Name      "beg"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    23
+Priority  49
+Name      "bleed"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    24
+Priority  49
+Name      "blush"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    25
+Priority  49
+Name      "bow"
+Position   8
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    26
+Priority  49
+Name      "brb"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    27
+Priority  49
+Name      "brief"
+Position   0
+Code       "do_gen_tog"          
+Level       0
+Subcmd      2
+Language  NATIVE
+End
+
+#COMMAND
+Number    28
+Priority  49
+Name      "burp"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    29
+Priority  49
+Name      "buy"
+Position   8
+Code       "do_not_here"         
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    30
+Priority  49
+Name      "bug"
+Position   0
+Code       "do_gen_write"        
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    31
+Priority  49
+Name      "cast"
+Position   6
+Code       "do_cast"             
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    32
+Priority  49
+Name      "cackle"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    33
+Priority  49
+Name      "cedit"
+Position   0
+Code       "do_oasis"            
+Level      LVL_IMPL
+Subcmd      5
+Language  NATIVE
+End
+
+#COMMAND
+Number    34
+Priority  49
+Name      "check"
+Position   8
+Code       "do_not_here"         
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    35
+Priority  49
+Name      "chuckle"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    36
+Priority  49
+Name      "clap"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    37
+Priority  49
+Name      "clear"
+Position   0
+Code       "do_gen_ps"           
+Level       0
+Subcmd     10
+Language  NATIVE
+End
+
+#COMMAND
+Number    38
+Priority  49
+Name      "close"
+Position   6
+Code       "do_gen_door"         
+Level       0
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    39
+Priority  49
+Name      "cls"
+Position   0
+Code       "do_gen_ps"           
+Level       0
+Subcmd     10
+Language  NATIVE
+End
+
+#COMMAND
+Number    40
+Priority  49
+Name      "clsolc"
+Position   0
+Code       "do_gen_tog"          
+Level       0
+Subcmd     17
+Language  NATIVE
+End
+
+#COMMAND
+Number    41
+Priority  49
+Name      "consider"
+Position   5
+Code       "do_consider"         
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    42
+Priority  49
+Name      "color"
+Position   0
+Code       "do_color"            
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    43
+Priority  49
+Name      "comfort"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    44
+Priority  49
+Name      "comb"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    45
+Priority  49
+Name      "commands"
+Position   0
+Code       "do_commands"         
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    46
+Priority  49
+Name      "compact"
+Position   0
+Code       "do_gen_tog"          
+Level       0
+Subcmd      3
+Language  NATIVE
+End
+
+#COMMAND
+Number    47
+Priority  49
+Name      "cough"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    48
+Priority  49
+Name      "credits"
+Position   0
+Code       "do_gen_ps"           
+Level       0
+Subcmd      2
+Language  NATIVE
+End
+
+#COMMAND
+Number    49
+Priority  49
+Name      "cringe"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    50
+Priority  49
+Name      "cry"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    51
+Priority  49
+Name      "cuddle"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    52
+Priority  49
+Name      "curse"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    53
+Priority  49
+Name      "curtsey"
+Position   8
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    54
+Priority  49
+Name      "dance"
+Position   8
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    55
+Priority  49
+Name      "date"
+Position   0
+Code       "do_date"             
+Level      LVL_IMMORT
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    56
+Priority  49
+Name      "daydream"
+Position   4
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    57
+Priority  49
+Name      "dc"
+Position   0
+Code       "do_dc"               
+Level      LVL_GOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    58
+Priority  49
+Name      "deposit"
+Position   8
+Code       "do_not_here"         
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    59
+Priority  49
+Name      "diagnose"
+Position   5
+Code       "do_diagnose"         
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    60
+Priority  49
+Name      "dig"
+Position   0
+Code       "do_dig"              
+Level       LVL_BUILDER
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    61
+Priority  49
+Name      "display"
+Position   0
+Code       "do_display"          
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    62
+Priority  49
+Name      "donate"
+Position   5
+Code       "do_drop"             
+Level       0
+Subcmd      2
+Language  NATIVE
+End
+
+#COMMAND
+Number    63
+Priority  49
+Name      "drink"
+Position   5
+Code       "do_drink"            
+Level       0
+Subcmd      2
+Language  NATIVE
+End
+
+#COMMAND
+Number    64
+Priority  49
+Name      "drop"
+Position   5
+Code       "do_drop"             
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    65
+Priority  49
+Name      "drool"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    66
+Priority  49
+Name      "eat"
+Position   5
+Code       "do_eat"              
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    67
+Priority  49
+Name      "echo"
+Position   4
+Code       "do_echo"             
+Level      LVL_IMMORT
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    68
+Priority  49
+Name      "edit"
+Position   0
+Code       "do_edit"             
+Level      LVL_IMPL
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    69
+Priority  49
+Name      "emote"
+Position   5
+Code       "do_echo"             
+Level       1
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    70
+Priority  49
+Name      ":"
+Position   5
+Code       "do_echo"             
+Level       1
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    71
+Priority  49
+Name      "embrace"
+Position   8
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    72
+Priority  49
+Name      "enter"
+Position   8
+Code       "do_enter"            
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    73
+Priority  49
+Name      "equipment"
+Position   4
+Code       "do_equipment"        
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    74
+Priority  49
+Name      "exits"
+Position   5
+Code       "do_exits"            
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    75
+Priority  49
+Name      "examine"
+Position   6
+Code       "do_examine"          
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    76
+Priority  49
+Name      "force"
+Position   4
+Code       "do_force"            
+Level      LVL_GOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    77
+Priority  49
+Name      "fart"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    78
+Priority  49
+Name      "fill"
+Position   8
+Code       "do_pour"             
+Level       0
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    79
+Priority  49
+Name      "flee"
+Position   7
+Code       "do_flee"             
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    80
+Priority  49
+Name      "flip"
+Position   8
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    81
+Priority  49
+Name      "flirt"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    82
+Priority  49
+Name      "follow"
+Position   5
+Code       "do_follow"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    83
+Priority  49
+Name      "fondle"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    84
+Priority  49
+Name      "freeze"
+Position   0
+Code       "do_wizutil"          
+Level      LVL_FREEZE
+Subcmd      4
+Language  NATIVE
+End
+
+#COMMAND
+Number    85
+Priority  49
+Name      "french"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    86
+Priority  49
+Name      "frown"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    87
+Priority  49
+Name      "fume"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    88
+Priority  49
+Name      "get"
+Position   5
+Code       "do_get"              
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    89
+Priority  49
+Name      "gasp"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    90
+Priority  49
+Name      "gecho"
+Position   0
+Code       "do_gecho"            
+Level      LVL_GOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    91
+Priority  49
+Name      "give"
+Position   5
+Code       "do_give"             
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    92
+Priority  49
+Name      "giggle"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    93
+Priority  49
+Name      "glare"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    94
+Priority  49
+Name      "goto"
+Position   4
+Code       "do_goto"             
+Level      LVL_IMMORT
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    95
+Priority  49
+Name      "gold"
+Position   5
+Code       "do_gold"             
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    96
+Priority  49
+Name      "gossip"
+Position   4
+Code       "do_gen_comm"         
+Level       0
+Subcmd      2
+Language  NATIVE
+End
+
+#COMMAND
+Number    97
+Priority  49
+Name      "group"
+Position   5
+Code       "do_group"            
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    98
+Priority  49
+Name      "grab"
+Position   5
+Code       "do_grab"             
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    99
+Priority  49
+Name      "grats"
+Position   4
+Code       "do_gen_comm"         
+Level       0
+Subcmd      4
+Language  NATIVE
+End
+
+#COMMAND
+Number    100
+Priority  49
+Name      "greet"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    101
+Priority  49
+Name      "grin"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    102
+Priority  49
+Name      "groan"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    103
+Priority  49
+Name      "grope"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    104
+Priority  49
+Name      "grovel"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    105
+Priority  49
+Name      "growl"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    106
+Priority  49
+Name      "gsay"
+Position   4
+Code       "do_gsay"             
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    107
+Priority  49
+Name      "gtell"
+Position   4
+Code       "do_gsay"             
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    108
+Priority  49
+Name      "help"
+Position   0
+Code       "do_help"             
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    109
+Priority  49
+Name      "handbook"
+Position   0
+Code       "do_gen_ps"           
+Level      LVL_IMMORT
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    110
+Priority  49
+Name      "hcontrol"
+Position   0
+Code       "do_hcontrol"         
+Level       LVL_GRGOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    111
+Priority  49
+Name      "hiccup"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    112
+Priority  49
+Name      "hide"
+Position   5
+Code       "do_hide"             
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    113
+Priority  49
+Name      "hit"
+Position   7
+Code       "do_hit"              
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    114
+Priority  49
+Name      "hold"
+Position   5
+Code       "do_grab"             
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    115
+Priority  49
+Name      "holler"
+Position   5
+Code       "do_gen_comm"         
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    116
+Priority  49
+Name      "holylight"
+Position   0
+Code       "do_gen_tog"          
+Level      LVL_IMMORT
+Subcmd     13
+Language  NATIVE
+End
+
+#COMMAND
+Number    117
+Priority  49
+Name      "hop"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    118
+Priority  49
+Name      "house"
+Position   5
+Code       "do_house"            
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    119
+Priority  49
+Name      "hug"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    120
+Priority  49
+Name      "inventory"
+Position   0
+Code       "do_inventory"        
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    121
+Priority  49
+Name      "idea"
+Position   0
+Code       "do_gen_write"        
+Level       0
+Subcmd      2
+Language  NATIVE
+End
+
+#COMMAND
+Number    122
+Priority  49
+Name      "imotd"
+Position   0
+Code       "do_gen_ps"           
+Level      LVL_IMMORT
+Subcmd      9
+Language  NATIVE
+End
+
+#COMMAND
+Number    123
+Priority  49
+Name      "immlist"
+Position   0
+Code       "do_gen_ps"           
+Level       0
+Subcmd      7
+Language  NATIVE
+End
+
+#COMMAND
+Number    124
+Priority  49
+Name      "info"
+Position   4
+Code       "do_gen_ps"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    125
+Priority  49
+Name      "insult"
+Position   5
+Code       "do_insult"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    126
+Priority  49
+Name      "invis"
+Position   0
+Code       "do_invis"            
+Level      LVL_IMMORT
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    127
+Priority  49
+Name      "junk"
+Position   5
+Code       "do_drop"             
+Level       0
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    128
+Priority  49
+Name      "kill"
+Position   7
+Code       "do_kill"             
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    129
+Priority  49
+Name      "kick"
+Position   7
+Code       "do_kick"             
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    130
+Priority  49
+Name      "kiss"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    131
+Priority  49
+Name      "look"
+Position   5
+Code       "do_look"             
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    132
+Priority  49
+Name      "laugh"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    133
+Priority  49
+Name      "last"
+Position   0
+Code       "do_last"             
+Level      LVL_GOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    134
+Priority  49
+Name      "leave"
+Position   8
+Code       "do_leave"            
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    135
+Priority  49
+Name      "levels"
+Position   0
+Code       "do_levels"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    136
+Priority  49
+Name      "list"
+Position   8
+Code       "do_not_here"         
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    137
+Priority  49
+Name      "lick"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    138
+Priority  49
+Name      "lock"
+Position   6
+Code       "do_gen_door"         
+Level       0
+Subcmd      3
+Language  NATIVE
+End
+
+#COMMAND
+Number    139
+Priority  49
+Name      "load"
+Position   0
+Code       "do_load"             
+Level      LVL_GOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    140
+Priority  49
+Name      "love"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    141
+Priority  49
+Name      "moan"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    142
+Priority  49
+Name      "motd"
+Position   0
+Code       "do_gen_ps"           
+Level       0
+Subcmd      8
+Language  NATIVE
+End
+
+#COMMAND
+Number    143
+Priority  49
+Name      "mail"
+Position   8
+Code       "do_not_here"         
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    144
+Priority  49
+Name      "massage"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    145
+Priority  49
+Name      "medit"
+Position   0
+Code       "do_oasis"            
+Level       LVL_BUILDER
+Subcmd      3
+Language  NATIVE
+End
+
+#COMMAND
+Number    146
+Priority  49
+Name      "mlist"
+Position   0
+Code       "do_oasis"            
+Level       LVL_BUILDER
+Subcmd      9
+Language  NATIVE
+End
+
+#COMMAND
+Number    147
+Priority  49
+Name      "mute"
+Position   0
+Code       "do_wizutil"          
+Level      LVL_GOD
+Subcmd      3
+Language  NATIVE
+End
+
+#COMMAND
+Number    148
+Priority  49
+Name      "murder"
+Position   7
+Code       "do_hit"              
+Level       0
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    149
+Priority  49
+Name      "news"
+Position   4
+Code       "do_gen_ps"           
+Level       0
+Subcmd      3
+Language  NATIVE
+End
+
+#COMMAND
+Number    150
+Priority  49
+Name      "nibble"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    151
+Priority  49
+Name      "nod"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    152
+Priority  49
+Name      "noauction"
+Position   0
+Code       "do_gen_tog"          
+Level       0
+Subcmd      5
+Language  NATIVE
+End
+
+#COMMAND
+Number    153
+Priority  49
+Name      "nogossip"
+Position   0
+Code       "do_gen_tog"          
+Level       0
+Subcmd      7
+Language  NATIVE
+End
+
+#COMMAND
+Number    154
+Priority  49
+Name      "nograts"
+Position   0
+Code       "do_gen_tog"          
+Level       0
+Subcmd      8
+Language  NATIVE
+End
+
+#COMMAND
+Number    155
+Priority  49
+Name      "nohassle"
+Position   0
+Code       "do_gen_tog"          
+Level      LVL_IMMORT
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    156
+Priority  49
+Name      "norepeat"
+Position   0
+Code       "do_gen_tog"          
+Level       0
+Subcmd     12
+Language  NATIVE
+End
+
+#COMMAND
+Number    157
+Priority  49
+Name      "noshout"
+Position   4
+Code       "do_gen_tog"          
+Level       1
+Subcmd      6
+Language  NATIVE
+End
+
+#COMMAND
+Number    158
+Priority  49
+Name      "nosummon"
+Position   0
+Code       "do_gen_tog"          
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    159
+Priority  49
+Name      "notell"
+Position   0
+Code       "do_gen_tog"          
+Level       1
+Subcmd      4
+Language  NATIVE
+End
+
+#COMMAND
+Number    160
+Priority  49
+Name      "notitle"
+Position   0
+Code       "do_wizutil"          
+Level      LVL_GOD
+Subcmd      2
+Language  NATIVE
+End
+
+#COMMAND
+Number    161
+Priority  49
+Name      "nowiz"
+Position   0
+Code       "do_gen_tog"          
+Level      LVL_IMMORT
+Subcmd      9
+Language  NATIVE
+End
+
+#COMMAND
+Number    162
+Priority  49
+Name      "nudge"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    163
+Priority  49
+Name      "nuzzle"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    164
+Priority  49
+Name      "order"
+Position   5
+Code       "do_order"            
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    165
+Priority  49
+Name      "offer"
+Position   8
+Code       "do_not_here"         
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    166
+Priority  49
+Name      "open"
+Position   6
+Code       "do_gen_door"         
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    167
+Priority  49
+Name      "olc"
+Position   0
+Code       "do_oasis"            
+Level       LVL_BUILDER
+Subcmd      7
+Language  NATIVE
+End
+
+#COMMAND
+Number    168
+Priority  49
+Name      "olist"
+Position   0
+Code       "do_oasis"            
+Level      LVL_BUILDER
+Subcmd     10
+Language  NATIVE
+End
+
+#COMMAND
+Number    169
+Priority  49
+Name      "oedit"
+Position   0
+Code       "do_oasis"            
+Level       LVL_BUILDER
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    170
+Priority  49
+Name      "put"
+Position   5
+Code       "do_put"              
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    171
+Priority  49
+Name      "pat"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    172
+Priority  49
+Name      "page"
+Position   0
+Code       "do_page"             
+Level      LVL_GOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    173
+Priority  49
+Name      "pardon"
+Position   0
+Code       "do_wizutil"          
+Level      LVL_GOD
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    174
+Priority  49
+Name      "peer"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    175
+Priority  49
+Name      "pick"
+Position   8
+Code       "do_gen_door"         
+Level       1
+Subcmd      4
+Language  NATIVE
+End
+
+#COMMAND
+Number    176
+Priority  49
+Name      "point"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    177
+Priority  49
+Name      "poke"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    178
+Priority  49
+Name      "policy"
+Position   0
+Code       "do_gen_ps"           
+Level       0
+Subcmd      5
+Language  NATIVE
+End
+
+#COMMAND
+Number    179
+Priority  49
+Name      "ponder"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    180
+Priority  49
+Name      "poofin"
+Position   0
+Code       "do_poofset"          
+Level      LVL_IMMORT
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    181
+Priority  49
+Name      "poofout"
+Position   0
+Code       "do_poofset"          
+Level      LVL_IMMORT
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    182
+Priority  49
+Name      "pour"
+Position   8
+Code       "do_pour"             
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    183
+Priority  49
+Name      "pout"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    184
+Priority  49
+Name      "prompt"
+Position   0
+Code       "do_display"          
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    185
+Priority  49
+Name      "practice"
+Position   5
+Code       "do_practice"         
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    186
+Priority  49
+Name      "pray"
+Position   6
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    187
+Priority  49
+Name      "puke"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    188
+Priority  49
+Name      "punch"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    189
+Priority  49
+Name      "purr"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    190
+Priority  49
+Name      "purge"
+Position   0
+Code       "do_purge"            
+Level       LVL_GOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    191
+Priority  49
+Name      "quaff"
+Position   5
+Code       "do_use"              
+Level       0
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    192
+Priority  49
+Name      "qecho"
+Position   0
+Code       "do_qcomm"            
+Level      LVL_IMMORT
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    193
+Priority  49
+Name      "quest"
+Position   0
+Code       "do_gen_tog"          
+Level       0
+Subcmd     10
+Language  NATIVE
+End
+
+#COMMAND
+Number    194
+Priority  49
+Name      "qui"
+Position   0
+Code       "do_quit"             
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    195
+Priority  49
+Name      "quit"
+Position   0
+Code       "do_quit"             
+Level       0
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    196
+Priority  49
+Name      "qsay"
+Position   5
+Code       "do_qcomm"            
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    197
+Priority  49
+Name      "reply"
+Position   4
+Code       "do_reply"            
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    198
+Priority  49
+Name      "rest"
+Position   5
+Code       "do_rest"             
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    199
+Priority  49
+Name      "read"
+Position   5
+Code       "do_look"             
+Level       0
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    200
+Priority  49
+Name      "reload"
+Position   0
+Code       "do_reboot"           
+Level      LVL_IMPL
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    201
+Priority  49
+Name      "recite"
+Position   5
+Code       "do_use"              
+Level       0
+Subcmd      2
+Language  NATIVE
+End
+
+#COMMAND
+Number    202
+Priority  49
+Name      "receive"
+Position   8
+Code       "do_not_here"         
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    203
+Priority  49
+Name      "remove"
+Position   5
+Code       "do_remove"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    204
+Priority  49
+Name      "rent"
+Position   8
+Code       "do_not_here"         
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    205
+Priority  49
+Name      "report"
+Position   5
+Code       "do_report"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    206
+Priority  49
+Name      "reroll"
+Position   0
+Code       "do_wizutil"          
+Level       LVL_GRGOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    207
+Priority  49
+Name      "rescue"
+Position   7
+Code       "do_rescue"           
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    208
+Priority  49
+Name      "restore"
+Position   0
+Code       "do_restore"          
+Level       LVL_GOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    209
+Priority  49
+Name      "return"
+Position   0
+Code       "do_return"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    210
+Priority  49
+Name      "redit"
+Position   0
+Code       "do_oasis"            
+Level      LVL_BUILDER
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    211
+Priority  49
+Name      "rlist"
+Position   0
+Code       "do_oasis"            
+Level      LVL_BUILDER
+Subcmd      8
+Language  NATIVE
+End
+
+#COMMAND
+Number    212
+Priority  49
+Name      "roll"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    213
+Priority  49
+Name      "roomflags"
+Position   0
+Code       "do_gen_tog"          
+Level      LVL_IMMORT
+Subcmd     11
+Language  NATIVE
+End
+
+#COMMAND
+Number    214
+Priority  49
+Name      "ruffle"
+Position   8
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    215
+Priority  49
+Name      "say"
+Position   5
+Code       "do_say"              
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    216
+Priority  49
+Name      "'"
+Position   5
+Code       "do_say"              
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    217
+Priority  49
+Name      "save"
+Position   4
+Code       "do_save"             
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    218
+Priority  49
+Name      "saveall"
+Position   0
+Code       "do_saveall"          
+Level      LVL_BUILDER
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    219
+Priority  49
+Name      "score"
+Position   0
+Code       "do_score"            
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    220
+Priority  49
+Name      "scream"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    221
+Priority  49
+Name      "sell"
+Position   8
+Code       "do_not_here"         
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    222
+Priority  49
+Name      "sedit"
+Position   0
+Code       "do_oasis"            
+Level      LVL_BUILDER
+Subcmd      4
+Language  NATIVE
+End
+
+#COMMAND
+Number    223
+Priority  49
+Name      "send"
+Position   4
+Code       "do_send"             
+Level       LVL_GOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    224
+Priority  49
+Name      "set"
+Position   0
+Code       "do_set"              
+Level       LVL_GOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    225
+Priority  49
+Name      "shout"
+Position   5
+Code       "do_gen_comm"         
+Level       0
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    226
+Priority  49
+Name      "shake"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    227
+Priority  49
+Name      "shiver"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    228
+Priority  49
+Name      "show"
+Position   0
+Code       "do_show"             
+Level      LVL_IMMORT
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    229
+Priority  49
+Name      "shrug"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    230
+Priority  49
+Name      "shutdow"
+Position   0
+Code       "do_shutdown"         
+Level      LVL_IMPL
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    231
+Priority  49
+Name      "shutdown"
+Position   0
+Code       "do_shutdown"         
+Level      LVL_IMPL
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    232
+Priority  49
+Name      "sigh"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    233
+Priority  49
+Name      "sing"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    234
+Priority  49
+Name      "sip"
+Position   5
+Code       "do_drink"            
+Level       0
+Subcmd      3
+Language  NATIVE
+End
+
+#COMMAND
+Number    235
+Priority  49
+Name      "sit"
+Position   5
+Code       "do_sit"              
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    236
+Priority  49
+Name      "skillset"
+Position   4
+Code       "do_skillset"         
+Level      LVL_GRGOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    237
+Priority  49
+Name      "sleep"
+Position   4
+Code       "do_sleep"            
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    238
+Priority  49
+Name      "slap"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    239
+Priority  49
+Name      "slist"
+Position   4
+Code       "do_oasis"            
+Level      LVL_BUILDER
+Subcmd     11
+Language  NATIVE
+End
+
+#COMMAND
+Number    240
+Priority  49
+Name      "slowns"
+Position   0
+Code       "do_gen_tog"          
+Level      LVL_IMPL
+Subcmd     14
+Language  NATIVE
+End
+
+#COMMAND
+Number    241
+Priority  49
+Name      "smile"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    242
+Priority  49
+Name      "smirk"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    243
+Priority  49
+Name      "snicker"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    244
+Priority  49
+Name      "snap"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    245
+Priority  49
+Name      "snarl"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    246
+Priority  49
+Name      "sneeze"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    247
+Priority  49
+Name      "sneak"
+Position   8
+Code       "do_sneak"            
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    248
+Priority  49
+Name      "sniff"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    249
+Priority  49
+Name      "snore"
+Position   4
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    250
+Priority  49
+Name      "snowball"
+Position   8
+Code       "do_action"           
+Level      LVL_IMMORT
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    251
+Priority  49
+Name      "snoop"
+Position   0
+Code       "do_snoop"            
+Level       LVL_GOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    252
+Priority  49
+Name      "snuggle"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    253
+Priority  49
+Name      "socials"
+Position   0
+Code       "do_commands"         
+Level       0
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    254
+Priority  49
+Name      "split"
+Position   6
+Code       "do_split"            
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    255
+Priority  49
+Name      "spank"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    256
+Priority  49
+Name      "spit"
+Position   8
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    257
+Priority  49
+Name      "squeeze"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    258
+Priority  49
+Name      "stand"
+Position   5
+Code       "do_stand"            
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    259
+Priority  49
+Name      "stare"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    260
+Priority  49
+Name      "stat"
+Position   0
+Code       "do_stat"             
+Level      LVL_IMMORT
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    261
+Priority  49
+Name      "steal"
+Position   8
+Code       "do_steal"            
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    262
+Priority  49
+Name      "steam"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    263
+Priority  49
+Name      "stroke"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    264
+Priority  49
+Name      "strut"
+Position   8
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    265
+Priority  49
+Name      "sulk"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    266
+Priority  49
+Name      "switch"
+Position   0
+Code       "do_switch"           
+Level      LVL_GRGOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    267
+Priority  49
+Name      "syslog"
+Position   0
+Code       "do_syslog"           
+Level      LVL_IMMORT
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    268
+Priority  49
+Name      "tell"
+Position   0
+Code       "do_tell"             
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    269
+Priority  49
+Name      "tackle"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    270
+Priority  49
+Name      "take"
+Position   5
+Code       "do_get"              
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    271
+Priority  49
+Name      "tango"
+Position   8
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    272
+Priority  49
+Name      "taunt"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    273
+Priority  49
+Name      "taste"
+Position   5
+Code       "do_eat"              
+Level       0
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    274
+Priority  49
+Name      "teleport"
+Position   0
+Code       "do_teleport"         
+Level       LVL_GOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    275
+Priority  49
+Name      "tedit"
+Position   0
+Code       "do_tedit"          
+Level      LVL_GRGOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    276
+Priority  49
+Name      "thank"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    277
+Priority  49
+Name      "think"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    278
+Priority  49
+Name      "thaw"
+Position   0
+Code       "do_wizutil"          
+Level      LVL_GRGOD
+Subcmd      5
+Language  NATIVE
+End
+
+#COMMAND
+Number    279
+Priority  49
+Name      "title"
+Position   0
+Code       "do_title"            
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    280
+Priority  49
+Name      "tickle"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    281
+Priority  49
+Name      "time"
+Position   0
+Code       "do_time"             
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    282
+Priority  49
+Name      "toggle"
+Position   0
+Code       "do_toggle"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    283
+Priority  49
+Name      "track"
+Position   8
+Code       "do_track"            
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    284
+Priority  49
+Name      "trackthru"
+Position   0
+Code       "do_gen_tog"          
+Level      LVL_IMPL
+Subcmd     16
+Language  NATIVE
+End
+
+#COMMAND
+Number    285
+Priority  49
+Name      "transfer"
+Position   4
+Code       "do_trans"            
+Level       LVL_GOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    286
+Priority  49
+Name      "trigedit"
+Position   0
+Code       "do_oasis"            
+Level      LVL_BUILDER
+Subcmd     13
+Language  NATIVE
+End
+
+#COMMAND
+Number    287
+Priority  49
+Name      "twiddle"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    288
+Priority  49
+Name      "typo"
+Position   0
+Code       "do_gen_write"        
+Level       0
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    289
+Priority  49
+Name      "unlock"
+Position   6
+Code       "do_gen_door"         
+Level       0
+Subcmd      2
+Language  NATIVE
+End
+
+#COMMAND
+Number    290
+Priority  49
+Name      "ungroup"
+Position   0
+Code       "do_ungroup"          
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    291
+Priority  49
+Name      "unban"
+Position   0
+Code       "do_unban"            
+Level      LVL_GRGOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    292
+Priority  49
+Name      "unaffect"
+Position   0
+Code       "do_wizutil"          
+Level       LVL_GOD
+Subcmd      6
+Language  NATIVE
+End
+
+#COMMAND
+Number    293
+Priority  49
+Name      "uptime"
+Position   0
+Code       "do_date"             
+Level      LVL_IMMORT
+Subcmd      1
+Language  NATIVE
+End
+
+#COMMAND
+Number    294
+Priority  49
+Name      "use"
+Position   6
+Code       "do_use"              
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    295
+Priority  49
+Name      "users"
+Position   0
+Code       "do_users"            
+Level      LVL_IMMORT
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    296
+Priority  49
+Name      "value"
+Position   8
+Code       "do_not_here"         
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    297
+Priority  49
+Name      "version"
+Position   0
+Code       "do_gen_ps"           
+Level       0
+Subcmd      6
+Language  NATIVE
+End
+
+#COMMAND
+Number    298
+Priority  49
+Name      "visible"
+Position   5
+Code       "do_visible"          
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    299
+Priority  49
+Name      "vnum"
+Position   0
+Code       "do_vnum"             
+Level      LVL_IMMORT
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    300
+Priority  49
+Name      "vstat"
+Position   0
+Code       "do_vstat"            
+Level      LVL_IMMORT
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    301
+Priority  49
+Name      "wake"
+Position   4
+Code       "do_wake"             
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    302
+Priority  49
+Name      "wave"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    303
+Priority  49
+Name      "wear"
+Position   5
+Code       "do_wear"             
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    304
+Priority  49
+Name      "weather"
+Position   5
+Code       "do_weather"          
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    305
+Priority  49
+Name      "who"
+Position   0
+Code       "do_who"              
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    306
+Priority  49
+Name      "whoami"
+Position   0
+Code       "do_gen_ps"           
+Level       0
+Subcmd     11
+Language  NATIVE
+End
+
+#COMMAND
+Number    307
+Priority  49
+Name      "where"
+Position   5
+Code       "do_where"            
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    308
+Priority  49
+Name      "whisper"
+Position   5
+Code       "do_spec_comm"        
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    309
+Priority  49
+Name      "whine"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    310
+Priority  49
+Name      "whistle"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    311
+Priority  49
+Name      "wield"
+Position   5
+Code       "do_wield"            
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    312
+Priority  49
+Name      "wiggle"
+Position   8
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    313
+Priority  49
+Name      "wimpy"
+Position   0
+Code       "do_wimpy"            
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    314
+Priority  49
+Name      "wink"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    315
+Priority  49
+Name      "withdraw"
+Position   8
+Code       "do_not_here"         
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    316
+Priority  49
+Name      "wiznet"
+Position   0
+Code       "do_wiznet"           
+Level      LVL_IMMORT
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    317
+Priority  49
+Name      ";"
+Position   0
+Code       "do_wiznet"           
+Level      LVL_IMMORT
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    318
+Priority  49
+Name      "wizhelp"
+Position   4
+Code       "do_commands"         
+Level      LVL_IMMORT
+Subcmd      2
+Language  NATIVE
+End
+
+#COMMAND
+Number    319
+Priority  49
+Name      "wizlist"
+Position   0
+Code       "do_gen_ps"           
+Level       0
+Subcmd      4
+Language  NATIVE
+End
+
+#COMMAND
+Number    320
+Priority  49
+Name      "wizlock"
+Position   0
+Code       "do_wizlock"          
+Level       LVL_IMPL
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    321
+Priority  49
+Name      "worship"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    322
+Priority  49
+Name      "write"
+Position   8
+Code       "do_write"            
+Level       1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    323
+Priority  49
+Name      "yawn"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    324
+Priority  49
+Name      "yodel"
+Position   5
+Code       "do_action"           
+Level       0
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    325
+Priority  49
+Name      "zreset"
+Position   0
+Code       "do_zreset"           
+Level      LVL_GRGOD
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    326
+Priority  49
+Name      "zedit"
+Position   0
+Code       "do_oasis"            
+Level      LVL_BUILDER
+Subcmd      2
+Language  NATIVE
+End
+
+#COMMAND
+Number    327
+Priority  49
+Name      "zlist"
+Position   0
+Code       "do_oasis"            
+Level      LVL_BUILDER
+Subcmd     12
+Language  NATIVE
+End
+
+#COMMAND
+Number    328
+Priority  49
+Name      "attach"
+Position   0
+Code       "do_attach"           
+Level      LVL_BUILDER
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    329
+Priority  49
+Name      "detach"
+Position   0
+Code       "do_detach"           
+Level      LVL_BUILDER
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    330
+Priority  49
+Name      "tlist"
+Position   0
+Code       "do_oasis"            
+Level      LVL_BUILDER
+Subcmd     14
+Language  NATIVE
+End
+
+#COMMAND
+Number    331
+Priority  49
+Name      "tstat"
+Position   0
+Code       "do_tstat"            
+Level      LVL_BUILDER
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    332
+Priority  49
+Name      "masound"
+Position   0
+Code       "do_masound"          
+Level      -1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    333
+Priority  49
+Name      "mkill"
+Position   8
+Code       "do_mkill"            
+Level      -1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    334
+Priority  49
+Name      "mjunk"
+Position   6
+Code       "do_mjunk"            
+Level      -1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    335
+Priority  49
+Name      "mdamage"
+Position   0
+Code       "do_mdamage"          
+Level      -1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    336
+Priority  49
+Name      "mdoor"
+Position   0
+Code       "do_mdoor"            
+Level      -1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    337
+Priority  49
+Name      "mecho"
+Position   0
+Code       "do_mecho"            
+Level      -1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    338
+Priority  49
+Name      "mechoaround"
+Position   0
+Code       "do_mechoaround"      
+Level      -1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    339
+Priority  49
+Name      "msend"
+Position   0
+Code       "do_msend"            
+Level      -1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    340
+Priority  49
+Name      "mload"
+Position   0
+Code       "do_mload"            
+Level      -1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    341
+Priority  49
+Name      "mpurge"
+Position   0
+Code       "do_mpurge"           
+Level      -1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    342
+Priority  49
+Name      "mgoto"
+Position   0
+Code       "do_mgoto"            
+Level      -1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    343
+Priority  49
+Name      "mat"
+Position   0
+Code       "do_mat"              
+Level      -1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    344
+Priority  49
+Name      "mteleport"
+Position   0
+Code       "do_mteleport"        
+Level      -1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    345
+Priority  49
+Name      "mforce"
+Position   0
+Code       "do_mforce"           
+Level      -1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    346
+Priority  49
+Name      "mhunt"
+Position   0
+Code       "do_mhunt"            
+Level      -1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    347
+Priority  49
+Name      "mremember"
+Position   0
+Code       "do_mremember"        
+Level      -1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    348
+Priority  49
+Name      "mforget"
+Position   0
+Code       "do_mforget"          
+Level      -1
+Subcmd      0
+Language  NATIVE
+End 
+
+#COMMAND
+Number    349
+Priority  49
+Name      "mtransform"
+Position   0
+Code       "do_mtransform"       
+Level      -1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    350
+Priority  49
+Name      "mzoneecho"
+Position   0
+Code       "do_mzoneecho"        
+Level      -1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    351
+Priority  49
+Name      "vdelete"
+Position   0
+Code       "do_vdelete"          
+Level      LVL_BUILDER
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    352
+Priority  49
+Name      "mfollow"
+Position   0
+Code       "do_mfollow"          
+Level      -1
+Subcmd      0
+Language  NATIVE
+End
+
+#COMMAND
+Number    353
+Priority  49
+Name      "py.mcall"
+Position   0
+Code       "do_py_mcall"         
+Level      -1
+Subcmd      0
+Flags       1
+Language  NATIVE
+End
+
+#COMMAND
+Number   354
+Priority 49
+Name     "py.restart"
+Position  0
+Level     LVL_IMMORT
+Subcmd    0
+Flags     3
+Language  PYTHON
+End
+
+#END

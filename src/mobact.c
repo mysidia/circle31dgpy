@@ -58,7 +58,7 @@ void mobile_activity(void)
 	REMOVE_BIT(MOB_FLAGS(ch), MOB_SPEC);
       } else {
         char actbuf[MAX_INPUT_LENGTH] = "";
-	if ((mob_index[GET_MOB_RNUM(ch)].func) (ch, ch, 0, actbuf))
+	if ((mob_index[GET_MOB_RNUM(ch)].func) (ch, ch, 0, actbuf, 0))
 	  continue;		/* go to next char */
       }
     }
@@ -115,7 +115,8 @@ void mobile_activity(void)
           if (aggressive_mob_on_a_leash(ch, ch->master, vict))
             continue;
 
-	  hit(ch, vict, TYPE_UNDEFINED);
+	  if (hit(ch, vict, TYPE_UNDEFINED) < -1)
+		  goto act_mob_died;
 	  found = TRUE;
 	}
       }
@@ -138,7 +139,8 @@ void mobile_activity(void)
 
           found = TRUE;
           act("'Hey!  You're the fiend that attacked me!!!', exclaims $n.", FALSE, ch, 0, 0, TO_ROOM);
-          hit(ch, vict, TYPE_UNDEFINED);
+          if (hit(ch, vict, TYPE_UNDEFINED) < -1)
+		  goto act_mob_died;
         }
       }
     }
@@ -155,7 +157,8 @@ void mobile_activity(void)
     if (AFF_FLAGGED(ch, AFF_CHARM) && ch->master && num_followers_charmed(ch->master) > (GET_CHA(ch->master) - 2) / 3) {
       if (!aggressive_mob_on_a_leash(ch, ch->master, ch->master)) {
         if (CAN_SEE(ch, ch->master) && !PRF_FLAGGED(ch->master, PRF_NOHASSLE))
-          hit(ch, ch->master, TYPE_UNDEFINED);
+          if (hit(ch, ch->master, TYPE_UNDEFINED) < -1)
+		  goto act_mob_died;
         stop_follower(ch);
       }
     }
@@ -170,13 +173,15 @@ void mobile_activity(void)
 	  continue;
 
 	act("$n jumps to the aid of $N!", FALSE, ch, 0, vict, TO_ROOM);
-	hit(ch, FIGHTING(vict), TYPE_UNDEFINED);
+	if (hit(ch, FIGHTING(vict), TYPE_UNDEFINED) < -1)
+		goto act_mob_died;
 	found = TRUE;
       }
     }
 
     /* Add new mobile actions here */
 
+act_mob_died:;
   }				/* end for() */
 }
 
@@ -256,7 +261,7 @@ void clearMemory(struct char_data *ch)
  */
 bool aggressive_mob_on_a_leash(struct char_data *slave, struct char_data *master, struct char_data *attack)
 {
-  static int snarl_cmd;
+  static CMD_DATA* snarl_cmd;
   int dieroll;
 
   if (!master || !AFF_FLAGGED(slave, AFF_CHARM))
@@ -268,13 +273,13 @@ bool aggressive_mob_on_a_leash(struct char_data *slave, struct char_data *master
   /* Sit. Down boy! HEEEEeeeel! */
   dieroll = rand_number(1, 20);
   if (dieroll != 1 && (dieroll == 20 || dieroll > 10 - GET_CHA(master) + GET_INT(slave))) {
-    if (snarl_cmd > 0 && attack && !rand_number(0, 3)) {
+    if (snarl_cmd && attack && !rand_number(0, 3)) {
       char victbuf[MAX_NAME_LENGTH + 1];
 
       strncpy(victbuf, GET_NAME(attack), sizeof(victbuf));	/* strncpy: OK */
       victbuf[sizeof(victbuf) - 1] = '\0';
 
-      do_action(slave, victbuf, snarl_cmd, 0);
+      do_action(slave, victbuf, snarl_cmd, 0, 0);
     }
 
     /* Success! But for how long? Hehe. */
