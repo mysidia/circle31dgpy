@@ -4,7 +4,7 @@
  *
  * Attribution Notice:
  *
- *    Copyright (c) 2003-2004 ***REMOVED***
+ *    Copyright (c) 2003-2004 Mysidia <***REMOVED***>
  *    All Rights Reserved
  *
  *    Licensed under the Academic Free License version 2.0
