@@ -4,7 +4,7 @@
 #
 # Attribution Notice:
 #
-#    Copyright (c) 2004 Mysidia <***REMOVED***>
+#    Copyright (c) 2004 Mysidia <mysidia at qmud dot org>
 #    All Rights Reserved
 #
 #    Licensed under the Academic Free License version 2.0

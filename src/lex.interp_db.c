@@ -456,7 +456,7 @@ char *yytext;
  *
  * Attribution Notice:
  *
- *    Copyright (c) 2003-2004 Mysidia <***REMOVED***> <mysidia-pyci@darkfire.net>
+ *    Copyright (c) 2003-2004 Mysidia <mysidia at qmud dot org> / mysidia of darkfire IRC
  *    All Rights Reserved
  *
  *    Licensed under the Academic Free License version 2.0

@@ -1,4 +1,4 @@
-Mysidia <***REMOVED***> <mysidia-pycirc@darkfire.net>
+Mysidia <mysidia at qmud dot org> / Mysidia of darkfire IRC
 
 This is a patch inteended to take a stock Circle-3.1 distribution and add:
   DG Scripts pl 11
